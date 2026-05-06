@@ -11,11 +11,16 @@
   - mostrar/ocultar contraseña,
   - estados de carga y error,
 
-- Redirección automática de `/` y rutas no existentes hacia `/login`.
-
 ## Estructura base
 
 - `src/pages/public/`: Vistas publicas
 - `src/pages/user/`: Vistas de rol = user
 - `src/pages/admin/`: Vistas de rol = admin
 - `src/pages/patrol/`: Vistas de rol = patrol
+
+## Rutas
+
+- `/login`: Ruta base para logearse.
+  > Redirección automática de `/`.
+- `/admin/`: Rutas para vistas de admin
+- `/p/`: Rutas para trabajadores
