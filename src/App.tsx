@@ -8,7 +8,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<h2>404 - La página no existe</h2>} />
       </Routes>
     </BrowserRouter>
   );
