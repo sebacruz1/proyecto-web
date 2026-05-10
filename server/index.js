@@ -38,7 +38,7 @@ app.post("/api/login", async (req, res) => {
   }
 
   const [rows] = await pool.execute(
-    "SELECT id, email, role, password FROM users WHERE email = ? LIMIT 1",
+    "SELECT id, email, role, password, first_name, last_name, rut, address FROM users WHERE email = ? LIMIT 1",
     [String(email).trim().toLowerCase()],
   );
 
@@ -53,6 +53,10 @@ app.post("/api/login", async (req, res) => {
     id: user.id,
     email: user.email,
     role: user.role,
+    firstName: user.first_name,
+    lastName: user.last_name,
+    rut: user.rut,
+    address: user.address,
     message: "Login correcto.",
   });
 });
