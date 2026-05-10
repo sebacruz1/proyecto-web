@@ -17,6 +17,7 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [registerError, setRegisterError] = useState("");
   const [registerSuccess, setRegisterSuccess] = useState("");
+  const sanitizeEmail = (value: string) => value.trim().toLowerCase();
 
   const closeModal = () => {
     onClose();
@@ -31,7 +32,8 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
     const cleanLastName = lastName.trim();
     const cleanRut = rut.trim();
     const cleanAddress = address.trim();
-    const cleanEmail = registerEmail.trim().toLowerCase();
+    const cleanEmail = sanitizeEmail(registerEmail);
+    setRegisterEmail(cleanEmail);
 
     if (
       !cleanFirstName ||
@@ -169,14 +171,15 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
               >
                 Correo electrónico
               </label>
-              <input
-                id="registerEmail"
-                type="email"
-                value={registerEmail}
-                onChange={(e) => setRegisterEmail(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                placeholder="usuario@email.com"
-                autoComplete="email"
+            <input
+              id="registerEmail"
+              type="email"
+              value={registerEmail}
+              onChange={(e) => setRegisterEmail(e.target.value)}
+              onBlur={() => setRegisterEmail((prev) => sanitizeEmail(prev))}
+              className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              placeholder="usuario@email.com"
+              autoComplete="email"
               />
             </div>
 
