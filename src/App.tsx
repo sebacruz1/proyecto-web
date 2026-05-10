@@ -13,6 +13,9 @@ function App() {
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/patrullero/dashboard" element={<PatrolDashboard />} />
         <Route path="/user/dashboard" element={<UserDashboard />} />
+        <Route path="/user/new" element={<UserDashboard />} />
+        <Route path="/user/history" element={<UserDashboard />} />
+        <Route path="/user/:id" element={<UserDashboard />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<h2>404 - La página no existe</h2>} />
       </Routes>
