@@ -1,26 +1,52 @@
 # Proyecto Web
 
-## Estado actual
+# 1.1
 
-- Base del proyecto creada con React.
-- Estilos con Tailwind CSS v4.
-- Enrutamiento con React Router.
-- Vista de login implementada en `/login`
-  - diseño visual inicial,
-  - validación básica de campos,
-  - mostrar/ocultar contraseña,
-  - estados de carga y error,
+# 1.2
 
-## Estructura base
+# 1.3
 
-- `src/pages/public/`: Vistas publicas
-- `src/pages/user/`: Vistas de rol = user
-- `src/pages/admin/`: Vistas de rol = admin
-- `src/pages/patrol/`: Vistas de rol = patrol
+# 1.4
 
-## Rutas
+# 1.5
 
-- `/login`: Ruta base para logearse.
-  > Redirección automática de `/`.
-- `/admin/`: Rutas para vistas de admin
-- `/p/`: Rutas para trabajadores
+# 1.6
+
+## Base de datos
+
+Para desarrollo local
+
+### Levantar solo la base de datos
+
+```bash
+docker compose up -d database
+```
+
+La base se inicializa automáticamente con:
+
+- `db/schema.sql`
+- `db/seed.sql`
+
+esto actualmente entrega 3 usuarios básicos para poder probar reedirecciones
+
+# Bajar servicios y red
+
+```
+docker compose down
+```
+
+### Credenciales de desarrollo
+
+- Host: `localhost`
+- Puerto: `3306`
+- Base de datos: `muni_sd`
+- Usuario: `santodomingo`
+- Password: `santodomingo`
+- Root password: `root`
+
+### Re-crear la base desde cero (aplicar schema + seed nuevamente)
+
+```bash
+docker compose down -v
+docker compose up -d database
+```
