@@ -1,5 +1,11 @@
 # Proyecto Web
 
+### **Integrantes:**
+- Sebastián Cruz | 21.147.290-1
+- Francisco Díaz | 21.322.379-8
+- Kamila Leiva | 21.619.863-8
+- Ignacio Matus de la Parra | 21.780.939-8
+
 # EP 1.1 Requerimientos
 
    ### Requerimientos Funcionales
@@ -61,11 +67,18 @@ La elección de una aplicación web por sobre una aplicación móvil nativa resp
 # EP 1.3 Prototipo
 
 A continuación se presenta el enlace al Prototipo del sistema desarrollado con la herramienta Figma. Este diseño ha sido construido respetando los lineamientos visuales e institucionales del Kit Digital del Gobierno de Chile, abarcando la totalidad de las interfaces necesarias para la plataforma de seguridad de la Municipalidad de Santo Domingo. 
-[Link A Figma](https://www.figma.com/design/3oCStUu3iCoRSlm6gDmKbq/Santo-Domingo-Seguro?node-id=1-38&t=S940WCwtDha9h3pI-0)
+- [Link A Figma](https://www.figma.com/design/3oCStUu3iCoRSlm6gDmKbq/Santo-Domingo-Seguro?node-id=1-38&t=S940WCwtDha9h3pI-0)
 
 ### **Nota técnica sobre la interacción de inicio de sesión y gestión de roles:**
 Dentro del lienzo de Figma se encuentran diseñadas absolutamente todas las vistas del sistema, incluyendo los Dashboards dedicados exclusivamente al perfil de Administrador. 
+
 Sin embargo, al probar el flujo interactivo del prototipo, se notará que el ingreso a la vista de Administrador no está conectado mediante un botón de acceso directo desde la pantalla principal de inicio de sesión. Esta "omisión" de interacción es intencional y responde a una decisión de Arquitectura de Navegación y Eperiencia de Usuario (EP 1.4) que se verá más detalladamente en el siguiente inciso.
+
+En la implementación real del sistema, se contará con un inicio de sesión unificado, donde el comportamiento esperado es que, al ingresar las credenciales (RUT/Correo y Contraseña), el motor de autenticación del sistema evaluará el perfil del usuario:
+- Si las credenciales corresponden a un ciudadano, será redirigido a su portal de reportes.
+- Si las credenciales corresponden a un funcionario municipal (Guardia o Administrador), el sistema lo redirigirá automáticamente a la vista de gestión correspondiente a su cargo.
+
+Por lo tanto, aunque la interacción mediante "clic" para cambiar de la vista de inicio de sesión a panel administrativo no está enlazada en el prototipo navegable (para no generar un flujo conceptualmente erróneo), todas las vistas están completamente implementadas en el diseño. Durante la fase de desarrollo y programación web del proyecto, el enrutamiento protegido basado en roles se encargará de dirigir a cada usuario a su vista correspondiente tras la validación de sus datos.
 
 
 # EP 1.4 Arquitectura de Navegación y Experiencia de Usuario
