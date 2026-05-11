@@ -1,7 +1,8 @@
 # Proyecto Web
 
-# 1.1
+# EP 1.1 Requerimientos
 
+   ### Requerimientos Funcionales
 1. Inicio y fin de turno (Rol: Guardia): El sistema debe permitir al
    guardia que realiza el patrullaje marcar el inicio y fin de su jornada,
    registrando su ubicación de forma obligatoria en la plataforma web.
@@ -30,21 +31,21 @@
    reportes de incidentes ocultando la identidad del emisor en la base de
    datos visible para los guardias, protegiendo al denunciante y evitando
    conflictos vecinales.
-   Requerimientos No Funcionales:
-8. Rendimiento - GPS de precisión: La ubicación en tiempo real debe
+### Requerimientos No Funcionales
+1. Rendimiento - GPS de precisión: La ubicación en tiempo real debe
    tener un margen de error máximo de 5 metros y una latencia baja para
    garantizar una respuesta efectiva en caso de emergencia.
-9. Seguridad - Privacidad en la ubicación: Los datos de ubicación del
+2. Seguridad - Privacidad en la ubicación: Los datos de ubicación del
    guardia y la identidad de los ciudadanos deben estar cifrados de extremo
    a extremo para que terceros no puedan interceptar su ruta ni vulnerar sus
    datos.
-10. Usabilidad - Estándar Gubernamental: La interfaz de usuario de la
+3. Usabilidad - Estándar Gubernamental: La interfaz de usuario de la
     plataforma web debe construirse basándose en los lineamientos de
     accesibilidad, paleta de colores y contrastes del Kit Digital
     (kitdigital.gob.cl) y el Framework Digital del Gobierno de Chile
     (framework.digital.gob.cl), asegurando una navegación intuitiva y formal.
 
-# 1.2
+# EP 1.2 Problema y Usuario Objetivo
 
 La municipalidad de Santo Domingo gestiona actualmente sus operaciones de seguridad de forma manual y fragmentada. Según lo conversado con Juan Pablo, el proceso presenta dos problemas principales:
 El primero es la gestión de reportes ciudadanos. Hoy en día, la única vía disponible para que un vecino reporte un incidente es mediante llamada telefónica. Esto genera problemas innecesarios: el ciudadano debe recordar el número, esperar ser atendido y describir verbalmente la situación, lo que puede resultar tedioso y desincentiva el reporte oportuno de incidentes.
@@ -57,11 +58,16 @@ Administrador: Encargado de gestionar rutas, asignar patrulleros a incidentes y 
 
 La elección de una aplicación web por sobre una aplicación móvil nativa responde a las necesidades de cada rol. El usuario generará reportes principalmente desde su celular, y una aplicación web evita tener que descargar e instalar una app para un uso ocasional. El administrador, por su parte, trabaja desde un computador, por lo que una interfaz web de escritorio es la más adecuada para su flujo de trabajo actual.
 
-# 1.3
+# EP 1.3 Prototipo
 
+A continuación se presenta el enlace al Prototipo del sistema desarrollado con la herramienta Figma. Este diseño ha sido construido respetando los lineamientos visuales e institucionales del Kit Digital del Gobierno de Chile, abarcando la totalidad de las interfaces necesarias para la plataforma de seguridad de la Municipalidad de Santo Domingo. 
 [Link A Figma](https://www.figma.com/design/3oCStUu3iCoRSlm6gDmKbq/Santo-Domingo-Seguro?node-id=1-38&t=S940WCwtDha9h3pI-0)
 
-# 1.4
+### **Nota técnica sobre la interacción de inicio de sesión y gestión de roles:
+Dentro del lienzo de Figma se encuentran diseñadas absolutamente todas las vistas del sistema, incluyendo los Dashboards dedicados exclusivamente al perfil de Administrador. 
+Sin embargo, al probar el flujo interactivo del prototipo, se notará que el ingreso a la vista de Administrador no está conectado mediante un botón de acceso directo desde la pantalla principal de inicio de sesión. 
+
+# EP 1.4 Arquitectura de Navegación y Experiencia de Usuario
 
 **a) Rutas principales y secundarias**
 
@@ -126,7 +132,7 @@ El control de acceso se implementa en cada página mediante el hook personalizad
 
 ---
 
-**e) Flujo de principales tareas **
+**e) Flujo de principales tareas**
 
 **Tarea 1 - Usuario crea un reporte:** Ingresa a la app -> Login -> Dashboard -> presiona "Generar reporte" -> completa formulario -> confirma envío -> vuelve al dashboard
 
