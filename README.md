@@ -52,9 +52,9 @@ El primero es la gestión de reportes ciudadanos. Hoy en día, la única vía di
 El segundo es la coordinación de patrulleros. Las rutas asignadas a cada patrullero se almacenan en una planilla Excel, lo que dificulta su actualización en tiempo real, no permite trazabilidad y obliga al administrador a comunicar los cambios manualmente.
 Ante esto, la solución propuesta es centralizar la gestión en una aplicación web con tres roles diferenciados:
 
-Usuario: Vecino que puede registrarse, enviar reportes con la información necesaria y consultar el estado de sus reportes anteriores.
-Patrullero: Personal de seguridad que puede consultar el vehículo asignado, su ruta del día y los incidentes activos en su zona.
-Administrador: Encargado de gestionar rutas, asignar patrulleros a incidentes y supervisar el estado general de los reportes.
+- Usuario: Vecino que puede registrarse, enviar reportes con la información necesaria y consultar el estado de sus reportes anteriores.
+- Patrullero: Personal de seguridad que puede consultar el vehículo asignado, su ruta del día y los incidentes activos en su zona.
+- Administrador: Encargado de gestionar rutas, asignar patrulleros a incidentes y supervisar el estado general de los reportes.
 
 La elección de una aplicación web por sobre una aplicación móvil nativa responde a las necesidades de cada rol. El usuario generará reportes principalmente desde su celular, y una aplicación web evita tener que descargar e instalar una app para un uso ocasional. El administrador, por su parte, trabaja desde un computador, por lo que una interfaz web de escritorio es la más adecuada para su flujo de trabajo actual.
 
@@ -63,9 +63,10 @@ La elección de una aplicación web por sobre una aplicación móvil nativa resp
 A continuación se presenta el enlace al Prototipo del sistema desarrollado con la herramienta Figma. Este diseño ha sido construido respetando los lineamientos visuales e institucionales del Kit Digital del Gobierno de Chile, abarcando la totalidad de las interfaces necesarias para la plataforma de seguridad de la Municipalidad de Santo Domingo. 
 [Link A Figma](https://www.figma.com/design/3oCStUu3iCoRSlm6gDmKbq/Santo-Domingo-Seguro?node-id=1-38&t=S940WCwtDha9h3pI-0)
 
-### **Nota técnica sobre la interacción de inicio de sesión y gestión de roles:
+### **Nota técnica sobre la interacción de inicio de sesión y gestión de roles:**
 Dentro del lienzo de Figma se encuentran diseñadas absolutamente todas las vistas del sistema, incluyendo los Dashboards dedicados exclusivamente al perfil de Administrador. 
-Sin embargo, al probar el flujo interactivo del prototipo, se notará que el ingreso a la vista de Administrador no está conectado mediante un botón de acceso directo desde la pantalla principal de inicio de sesión. 
+Sin embargo, al probar el flujo interactivo del prototipo, se notará que el ingreso a la vista de Administrador no está conectado mediante un botón de acceso directo desde la pantalla principal de inicio de sesión. Esta "omisión" de interacción es intencional y responde a una decisión de Arquitectura de Navegación y Eperiencia de Usuario (EP 1.4) que se verá más detalladamente en el siguiente inciso.
+
 
 # EP 1.4 Arquitectura de Navegación y Experiencia de Usuario
 
