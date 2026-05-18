@@ -1,10 +1,10 @@
 # Proyecto Web
 
 ### **Integrantes:**
-- Sebastián Cruz | 21.147.290-1
-- Francisco Díaz | 21.322.379-8
-- Kamila Leiva | 21.619.863-8
-- Ignacio Matus de la Parra | 21.780.939-8
+- Sebastián Cruz
+- Francisco Díaz
+- Kamila Leiva
+- Ignacio Matus de la Parra
 
 # EP 1.1 Requerimientos
 
