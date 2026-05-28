@@ -61,6 +61,26 @@ app.post("/api/login", async (req, res) => {
   });
 });
 
+app.get("/api/incidents", async (req, res) => {
+  try {
+    // Obtenemos los incidentes y hacemos un JOIN para traer el nombre del usuario (si no es anónimo)
+    const [rows] = await pool.execute(`
+      SELECT 
+        i.*,
+        u.first_name,
+        u.last_name
+      FROM incidents i
+      LEFT JOIN users u ON i.user_id = u.id
+      ORDER BY i.created_at DESC
+    `);
+    
+    res.json(rows);
+  } catch (error) {
+    console.error("Error obteniendo incidentes:", error);
+    res.status(500).json({ message: "Error al obtener incidentes de la base de datos." });
+  }
+});
+
 app.listen(port, () => {
   console.log(`API escuchando en http://localhost:${port}`);
 });
