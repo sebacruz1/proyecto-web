@@ -1,12 +1,12 @@
-import { setAuthUser } from "@/lib/authUser";
+import { setAuthUser, type AuthUser } from "@/lib/authUser";
 import Navbar from "@/components/layout/Navbar";
 import RegisterModal from "@/components/ui/RegisterModal";
 import { useState } from "react";
 import {
-    IoAlertCircleOutline,
-    IoEye,
-    IoEyeOff,
-    IoReloadOutline,
+  IoAlertCircleOutline,
+  IoEye,
+  IoEyeOff,
+  IoReloadOutline,
 } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 
@@ -24,7 +24,7 @@ export default function LoginPage() {
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const sanitizeEmail = (value: string) => value.trim().toLowerCase();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     const cleanEmail = sanitizeEmail(email);
@@ -54,11 +54,14 @@ export default function LoginPage() {
         id?: number;
         message?: string;
         role?: string;
+        roleId?: number;
+        roleDisplay?: string;
         email?: string;
         firstName?: string;
         lastName?: string;
         rut?: string;
         address?: string;
+        token?: string;
       };
 
       if (!response.ok) {
@@ -69,14 +72,6 @@ export default function LoginPage() {
       }
 
       const userRole = payload.role ?? "";
-      const validRoles = ["admin", "user", "patrullero"] as const;
-
-      if (!validRoles.includes(userRole as (typeof validRoles)[number])) {
-        setError("Rol de usuario no soportado.");
-        return;
-      }
-
-      const typedRole = userRole as (typeof validRoles)[number];
 
       if (accessType === "ciudadano" && userRole !== "user") {
         setError("Este acceso es solo para ciudadanos.");
@@ -88,20 +83,26 @@ export default function LoginPage() {
         return;
       }
 
-      if (!payload.id || !payload.email) {
+      if (!payload.id || !payload.email || !payload.token) {
         setError("No se pudieron leer los datos del usuario.");
         return;
       }
 
-      setAuthUser({
-        id: payload.id,
-        email: payload.email,
-        role: typedRole,
-        firstName: payload.firstName ?? "Usuario",
-        lastName: payload.lastName ?? "",
-        rut: payload.rut ?? "No disponible",
-        address: payload.address ?? "No disponible",
-      });
+      setAuthUser(
+        {
+          id: payload.id,
+          email: payload.email,
+          role: userRole as AuthUser["role"],
+          roleId: payload.roleId ?? 0,
+          roleDisplay: payload.roleDisplay ?? userRole,
+          firstName: payload.firstName ?? "Usuario",
+          lastName: payload.lastName ?? "",
+          rut: payload.rut ?? "No disponible",
+          address: payload.address ?? "No disponible",
+          token: payload.token,
+        },
+        remember,
+      );
 
       navigate(`/${userRole}/dashboard`, { replace: true });
     } catch {
