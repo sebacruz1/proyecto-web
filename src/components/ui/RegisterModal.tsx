@@ -23,7 +23,9 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
     onClose();
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRegisterSubmit = async (
+    e: React.SubmitEvent<HTMLFormElement>,
+  ) => {
     e.preventDefault();
     setRegisterError("");
     setRegisterSuccess("");
@@ -63,7 +65,32 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
       return;
     }
 
-    setRegisterSuccess("Cuenta creada en modo demo.");
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
+      const response = await fetch(`${apiBaseUrl}/api/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: cleanFirstName,
+          lastName: cleanLastName,
+          rut: cleanRut,
+          address: cleanAddress,
+          email: cleanEmail,
+          password: registerPassword,
+        }),
+      });
+
+      const payload = (await response.json()) as { message?: string };
+
+      if (!response.ok) {
+        setRegisterError(payload.message ?? "Error al crear la cuenta.");
+        return;
+      }
+
+      setRegisterSuccess("¡Cuenta creada! Ya puedes iniciar sesión.");
+    } catch {
+      setRegisterError("No se pudo conectar al servidor.");
+    }
   };
 
   if (!isOpen) {
@@ -171,15 +198,15 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
               >
                 Correo electrónico
               </label>
-            <input
-              id="registerEmail"
-              type="email"
-              value={registerEmail}
-              onChange={(e) => setRegisterEmail(e.target.value)}
-              onBlur={() => setRegisterEmail((prev) => sanitizeEmail(prev))}
-              className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-              placeholder="usuario@email.com"
-              autoComplete="email"
+              <input
+                id="registerEmail"
+                type="email"
+                value={registerEmail}
+                onChange={(e) => setRegisterEmail(e.target.value)}
+                onBlur={() => setRegisterEmail((prev) => sanitizeEmail(prev))}
+                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                placeholder="usuario@email.com"
+                autoComplete="email"
               />
             </div>
 
