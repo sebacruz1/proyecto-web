@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     container_name: mysql_santodomingo
     restart: unless-stopped
-    environment
+    environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: muni_sd
       MYSQL_USER: santodomingo
