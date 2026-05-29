@@ -1,6 +1,7 @@
 # Proyecto Web
 
 ### **Integrantes:**
+
 - Sebastián Cruz
 - Francisco Díaz
 - Kamila Leiva
@@ -8,7 +9,8 @@
 
 # EP 1.1 Requerimientos
 
-   ### Requerimientos Funcionales
+### Requerimientos Funcionales
+
 1. Inicio y fin de turno (Rol: Guardia): El sistema debe permitir al
    guardia que realiza el patrullaje marcar el inicio y fin de su jornada,
    registrando su ubicación de forma obligatoria en la plataforma web.
@@ -37,7 +39,9 @@
    reportes de incidentes ocultando la identidad del emisor en la base de
    datos visible para los guardias, protegiendo al denunciante y evitando
    conflictos vecinales.
+
 ### Requerimientos No Funcionales
+
 1. Rendimiento - GPS de precisión: La ubicación en tiempo real debe
    tener un margen de error máximo de 5 metros y una latencia baja para
    garantizar una respuesta efectiva en caso de emergencia.
@@ -46,10 +50,10 @@
    a extremo para que terceros no puedan interceptar su ruta ni vulnerar sus
    datos.
 3. Usabilidad - Estándar Gubernamental: La interfaz de usuario de la
-    plataforma web debe construirse basándose en los lineamientos de
-    accesibilidad, paleta de colores y contrastes del Kit Digital
-    (kitdigital.gob.cl) y el Framework Digital del Gobierno de Chile
-    (framework.digital.gob.cl), asegurando una navegación intuitiva y formal.
+   plataforma web debe construirse basándose en los lineamientos de
+   accesibilidad, paleta de colores y contrastes del Kit Digital
+   (kitdigital.gob.cl) y el Framework Digital del Gobierno de Chile
+   (framework.digital.gob.cl), asegurando una navegación intuitiva y formal.
 
 # EP 1.2 Problema y Usuario Objetivo
 
@@ -66,20 +70,22 @@ La elección de una aplicación web por sobre una aplicación móvil nativa resp
 
 # EP 1.3 Prototipo
 
-A continuación se presenta el enlace al Prototipo del sistema desarrollado con la herramienta Figma. Este diseño ha sido construido respetando los lineamientos visuales e institucionales del Kit Digital del Gobierno de Chile, abarcando la totalidad de las interfaces necesarias para la plataforma de seguridad de la Municipalidad de Santo Domingo. 
+A continuación se presenta el enlace al Prototipo del sistema desarrollado con la herramienta Figma. Este diseño ha sido construido respetando los lineamientos visuales e institucionales del Kit Digital del Gobierno de Chile, abarcando la totalidad de las interfaces necesarias para la plataforma de seguridad de la Municipalidad de Santo Domingo.
+
 - [Link A Figma](https://www.figma.com/design/3oCStUu3iCoRSlm6gDmKbq/Santo-Domingo-Seguro?node-id=1-38&t=S940WCwtDha9h3pI-0)
 
 ### **Nota técnica sobre la interacción de inicio de sesión y gestión de roles:**
-Dentro del lienzo de Figma se encuentran diseñadas absolutamente todas las vistas del sistema, incluyendo los Dashboards dedicados exclusivamente al perfil de Administrador. 
+
+Dentro del lienzo de Figma se encuentran diseñadas absolutamente todas las vistas del sistema, incluyendo los Dashboards dedicados exclusivamente al perfil de Administrador.
 
 Sin embargo, al probar el flujo interactivo del prototipo, se notará que el ingreso a la vista de Administrador no está conectado mediante un botón de acceso directo desde la pantalla principal de inicio de sesión. Esta "omisión" de interacción es intencional y responde a una decisión de Arquitectura de Navegación y Eperiencia de Usuario (EP 1.4) que se verá más detalladamente en el siguiente inciso.
 
 En la implementación real del sistema, se contará con un inicio de sesión unificado, donde el comportamiento esperado es que, al ingresar las credenciales (RUT/Correo y Contraseña), el motor de autenticación del sistema evaluará el perfil del usuario:
+
 - Si las credenciales corresponden a un ciudadano, será redirigido a su portal de reportes.
 - Si las credenciales corresponden a un funcionario municipal (Guardia o Administrador), el sistema lo redirigirá automáticamente a la vista de gestión correspondiente a su cargo.
 
 Por lo tanto, aunque la interacción mediante "clic" para cambiar de la vista de inicio de sesión a panel administrativo no está enlazada en el prototipo navegable (para no generar un flujo conceptualmente erróneo), todas las vistas están completamente implementadas en el diseño. Durante la fase de desarrollo y programación web del proyecto, el enrutamiento protegido basado en roles se encargará de dirigir a cada usuario a su vista correspondiente tras la validación de sus datos.
-
 
 # EP 1.4 Arquitectura de Navegación y Experiencia de Usuario
 
@@ -199,6 +205,14 @@ Los tres roles comparten el mismo `Navbar` con adaptación por prop de rol, gara
 **Aplicación web en lugar de app nativa:** la decisión de construir una PWA responsive en lugar de una aplicación nativa móvil responde directamente a los dos contextos de uso identificados: el vecino reporta desde el celular sin necesidad de instalar nada, y el administrador opera desde un computador donde una interfaz web es el entorno natural de trabajo.
 
 ---
+
+# EP 2.2 Diseño modelo relacional
+
+![Modelo Relacional de Base de Datos](images/ModeloRelacional.png)
+
+# EP 2.7 Pruebas Funcionales.
+
+Las pruebas en Postman estan en el archivo PruebasPostman.json
 
 ## Base de datos
 
