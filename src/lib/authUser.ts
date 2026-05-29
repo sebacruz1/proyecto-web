@@ -2,33 +2,34 @@ export type AuthUser = {
   id: number;
   email: string;
   role: "admin" | "user" | "patrullero";
+  roleId: number;
+  roleDisplay: string;
   firstName: string;
   lastName: string;
   rut: string;
   address: string;
+  token: string;
 };
 
-const AUTH_USER_KEY = "auth_user";
+const KEY = "auth_user";
 
-export const setAuthUser = (user: AuthUser) => {
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+export const setAuthUser = (user: AuthUser, remember: boolean = false) => {
+  const storage = remember ? localStorage : sessionStorage;
+  storage.setItem(KEY, JSON.stringify(user));
 };
 
 export const getAuthUser = (): AuthUser | null => {
-  const rawUser = localStorage.getItem(AUTH_USER_KEY);
-
-  if (!rawUser) {
-    return null;
-  }
-
+  const raw = sessionStorage.getItem(KEY) ?? localStorage.getItem(KEY);
+  if (!raw) return null;
   try {
-    return JSON.parse(rawUser) as AuthUser;
+    return JSON.parse(raw) as AuthUser;
   } catch {
-    localStorage.removeItem(AUTH_USER_KEY);
+    clearAuthUser();
     return null;
   }
 };
 
 export const clearAuthUser = () => {
-  localStorage.removeItem(AUTH_USER_KEY);
+  sessionStorage.removeItem(KEY);
+  localStorage.removeItem(KEY);
 };
