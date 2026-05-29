@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { IoClose, IoReloadOutline } from "react-icons/io5";
-import { getAuthUser } from "@/lib/authUser";
+import { api, ApiError } from "@/lib/api";
 
 type RoleOption = { id: number; name: string; display_name: string };
 
@@ -9,8 +9,6 @@ type Props = {
   onClose: () => void;
   onCreated: () => void;
 };
-
-const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
   const [firstName, setFirstName] = useState("");
@@ -23,16 +21,14 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
   const [roleName, setRoleName] = useState("patrullero");
   const [roles, setRoles] = useState<RoleOption[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [serverError, setServerError] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
-    const token = getAuthUser()?.token ?? "";
-    fetch(`${BASE}/api/roles`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data: RoleOption[]) => {
+    api
+      .get<RoleOption[]>("/api/roles")
+      .then((data) => {
         setRoles(data);
         if (data.length > 0 && !data.find((r) => r.name === roleName)) {
           setRoleName(data[0].name);
@@ -40,6 +36,14 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
       })
       .catch(() => {});
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clearFieldError = (field: string) =>
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
 
   const reset = () => {
     setFirstName("");
@@ -49,7 +53,8 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
     setPhone("");
     setEmail("");
     setPassword("");
-    setError("");
+    setFieldErrors({});
+    setServerError("");
   };
 
   const handleClose = () => {
@@ -59,48 +64,64 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
-    const authUser = getAuthUser();
-    if (!authUser?.token) {
-      setError("Sesión expirada.");
+    setFieldErrors({});
+    setServerError("");
+
+    const cleanFirst = firstName.trim();
+    const cleanLast = lastName.trim();
+    const cleanRut = rut.trim();
+    const cleanAddress = address.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    const errors: Record<string, string> = {};
+    if (!cleanFirst) errors.firstName = "El nombre es obligatorio.";
+    if (!cleanLast) errors.lastName = "El apellido es obligatorio.";
+    if (!cleanRut) errors.rut = "El RUT es obligatorio.";
+    if (!cleanAddress) errors.address = "La dirección es obligatoria.";
+    if (!cleanEmail) errors.email = "El correo electrónico es obligatorio.";
+    if (!password) errors.password = "La contraseña es obligatoria.";
+    else if (password.length < 6) errors.password = "Mínimo 6 caracteres.";
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(`${BASE}/api/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authUser.token}`,
-        },
-        body: JSON.stringify({
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          rut: rut.trim(),
-          address: address.trim(),
-          phone: phone.trim() || undefined,
-          email: email.trim().toLowerCase(),
-          password,
-          role: roleName,
-        }),
+      await api.post("/api/users", {
+        firstName: cleanFirst,
+        lastName: cleanLast,
+        rut: cleanRut,
+        address: cleanAddress,
+        phone: phone.trim() || undefined,
+        email: cleanEmail,
+        password,
+        role: roleName,
       });
-      const payload = (await response.json()) as { message?: string };
-      if (!response.ok) {
-        setError(payload.message ?? "Error al crear el usuario.");
-        return;
-      }
       reset();
       onCreated();
       onClose();
-    } catch {
-      setError("No se pudo conectar al servidor.");
+    } catch (e) {
+      if (e instanceof ApiError) {
+        if (e.fields) setFieldErrors(e.fields);
+        setServerError(e.message);
+      } else {
+        setServerError("No se pudo conectar al servidor.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   if (!isOpen) return null;
+
+  const inputClass = (field: string) =>
+    `h-11 w-full rounded-xl border px-4 text-sm outline-none transition focus:ring-2 ${
+      fieldErrors[field]
+        ? "border-red-400 focus:border-red-400 focus:ring-red-400/20"
+        : "border-slate-300 focus:border-blue-500 focus:ring-blue-500/20"
+    }`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
@@ -121,7 +142,7 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
         </p>
 
         <form onSubmit={handleSubmit} noValidate>
-          {/* Rol desde BD */}
+          {/* Rol */}
           <div className="mb-4">
             <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-600">
               Rol
@@ -130,7 +151,7 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
               <p className="text-sm text-slate-400">Cargando roles...</p>
             ) : (
               <div
-                className={`grid gap-2 rounded-xl bg-slate-100 p-1`}
+                className="grid gap-2 rounded-xl bg-slate-100 p-1"
                 style={{ gridTemplateColumns: `repeat(${roles.length}, 1fr)` }}
               >
                 {roles.map((r) => (
@@ -159,11 +180,18 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
               <input
                 type="text"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                required
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setFirstName(e.target.value);
+                  clearFieldError("firstName");
+                }}
+                className={inputClass("firstName")}
                 placeholder="Juan"
               />
+              {fieldErrors.firstName && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.firstName}
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">
@@ -172,11 +200,18 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
               <input
                 type="text"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                required
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setLastName(e.target.value);
+                  clearFieldError("lastName");
+                }}
+                className={inputClass("lastName")}
                 placeholder="Pérez"
               />
+              {fieldErrors.lastName && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.lastName}
+                </p>
+              )}
             </div>
           </div>
 
@@ -188,11 +223,16 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
               <input
                 type="text"
                 value={rut}
-                onChange={(e) => setRut(e.target.value)}
-                required
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setRut(e.target.value);
+                  clearFieldError("rut");
+                }}
+                className={inputClass("rut")}
                 placeholder="12.345.678-9"
               />
+              {fieldErrors.rut && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.rut}</p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">
@@ -203,7 +243,7 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 placeholder="+56912345678"
               />
             </div>
@@ -216,11 +256,16 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
             <input
               type="text"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              required
-              className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              onChange={(e) => {
+                setAddress(e.target.value);
+                clearFieldError("address");
+              }}
+              className={inputClass("address")}
               placeholder="Av. Principal 123"
             />
+            {fieldErrors.address && (
+              <p className="mt-1 text-xs text-red-500">{fieldErrors.address}</p>
+            )}
           </div>
 
           <div className="mb-3 grid grid-cols-2 gap-3">
@@ -231,11 +276,16 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  clearFieldError("email");
+                }}
+                className={inputClass("email")}
                 placeholder="usuario@correo.com"
               />
+              {fieldErrors.email && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.email}</p>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">
@@ -244,17 +294,24 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  clearFieldError("password");
+                }}
+                className={inputClass("password")}
                 placeholder="Mínimo 6 caracteres"
               />
+              {fieldErrors.password && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.password}
+                </p>
+              )}
             </div>
           </div>
 
-          {error && (
+          {serverError && (
             <div className="mb-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-              <p className="text-sm text-red-500">{error}</p>
+              <p className="text-sm text-red-500">{serverError}</p>
             </div>
           )}
 

@@ -1,4 +1,5 @@
 import { clearAuthUser, getAuthUser } from "@/lib/authUser";
+import { api, ApiError } from "@/lib/api";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -35,8 +36,6 @@ export type Stats = {
   byType: TypeStat[];
 };
 
-const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
-
 export function useAdminDashboard() {
   const navigate = useNavigate();
   const [user] = useState(() => getAuthUser());
@@ -58,34 +57,22 @@ export function useAdminDashboard() {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
 
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${user.token}`,
-    };
-
     async function fetchData() {
       try {
-        const [statsRes, incidentsRes, patrolRes] = await Promise.all([
-          fetch(`${BASE}/api/stats`, { headers }),
-          fetch(`${BASE}/api/incidents`, { headers }),
-          fetch(`${BASE}/api/users?role=patrullero`, { headers }),
+        const [statsData, allIncidents, patrolData] = await Promise.all([
+          api.get<Stats>("/api/stats"),
+          api.get<Incident[]>("/api/incidents"),
+          api.get<Patrullero[]>("/api/users?role=patrullero"),
         ]);
 
-        if (statsRes.status === 401) {
-          clearAuthUser();
-          navigate("/login", { replace: true });
-          return;
-        }
-
-        if (statsRes.ok) setStats(await statsRes.json());
-        if (incidentsRes.ok) {
-          const all: Incident[] = await incidentsRes.json();
-          setPendingIncidents(all.filter((i) => i.status === "recibido"));
-          setAssignedIncidents(all.filter((i) => i.status === "en_desarrollo"));
-        }
-        if (patrolRes.ok) setPatrulleros(await patrolRes.json());
+        setStats(statsData);
+        setPendingIncidents(allIncidents.filter((i) => i.status === "recibido"));
+        setAssignedIncidents(allIncidents.filter((i) => i.status === "en_desarrollo"));
+        setPatrulleros(patrolData);
       } catch (e) {
-        console.error("Error cargando datos del dashboard:", e);
+        if (!(e instanceof ApiError && e.status === 401)) {
+          console.error("Error cargando datos del dashboard:", e);
+        }
       } finally {
         setLoading(false);
         fetchingRef.current = false;
@@ -100,26 +87,22 @@ export function useAdminDashboard() {
     fetchingRef.current = true;
     setLoading(true);
 
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${user.token}`,
-    };
-
     Promise.all([
-      fetch(`${BASE}/api/stats`, { headers }),
-      fetch(`${BASE}/api/incidents`, { headers }),
-      fetch(`${BASE}/api/users?role=patrullero`, { headers }),
+      api.get<Stats>("/api/stats"),
+      api.get<Incident[]>("/api/incidents"),
+      api.get<Patrullero[]>("/api/users?role=patrullero"),
     ])
-      .then(async ([statsRes, incidentsRes, patrolRes]) => {
-        if (statsRes.ok) setStats(await statsRes.json());
-        if (incidentsRes.ok) {
-          const all: Incident[] = await incidentsRes.json();
-          setPendingIncidents(all.filter((i) => i.status === "recibido"));
-          setAssignedIncidents(all.filter((i) => i.status === "en_desarrollo"));
-        }
-        if (patrolRes.ok) setPatrulleros(await patrolRes.json());
+      .then(([statsData, allIncidents, patrolData]) => {
+        setStats(statsData);
+        setPendingIncidents(allIncidents.filter((i) => i.status === "recibido"));
+        setAssignedIncidents(allIncidents.filter((i) => i.status === "en_desarrollo"));
+        setPatrulleros(patrolData);
       })
-      .catch(console.error)
+      .catch((e) => {
+        if (!(e instanceof ApiError && e.status === 401)) {
+          console.error(e);
+        }
+      })
       .finally(() => {
         setLoading(false);
         fetchingRef.current = false;
@@ -127,25 +110,23 @@ export function useAdminDashboard() {
   };
 
   const resolveIncident = async (incidentId: number) => {
-    if (!user) return false;
-    const res = await fetch(`${BASE}/api/incidents/${incidentId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
-      body: JSON.stringify({ status: "resuelto" }),
-    });
-    if (res.ok) refetch();
-    return res.ok;
+    try {
+      await api.put(`/api/incidents/${incidentId}`, { status: "resuelto" });
+      refetch();
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const assignPatrullero = async (incidentId: number, patrulleroId: number) => {
-    if (!user) return false;
-    const res = await fetch(`${BASE}/api/assignments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${user.token}` },
-      body: JSON.stringify({ incidentId, patrulleroId }),
-    });
-    if (res.ok) refetch();
-    return res.ok;
+    try {
+      await api.post("/api/assignments", { incidentId, patrulleroId });
+      refetch();
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const handleLogout = () => {

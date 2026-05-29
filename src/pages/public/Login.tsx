@@ -21,17 +21,22 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const sanitizeEmail = (value: string) => value.trim().toLowerCase();
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
     const cleanEmail = sanitizeEmail(email);
     setEmail(cleanEmail);
 
-    if (!cleanEmail || !password) {
-      setError("Por favor completa todos los campos.");
+    const fe: { email?: string; password?: string } = {};
+    if (!cleanEmail) fe.email = "El correo electrónico es obligatorio.";
+    if (!password) fe.password = "La contraseña es obligatoria.";
+    if (Object.keys(fe).length > 0) {
+      setFieldErrors(fe);
       return;
     }
 
@@ -186,13 +191,14 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => { setEmail(e.target.value); setFieldErrors((p) => ({ ...p, email: undefined })); }}
                   onBlur={() => setEmail((prev) => sanitizeEmail(prev))}
-                  placeholder="Ingrese su identificaión"
+                  placeholder="Ingrese su identificación"
                   autoComplete="email"
                   required
-                  className="w-full h-11 bg-white border border-slate-300 rounded-xl px-4 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+                  className={`w-full h-11 bg-white border rounded-xl px-4 text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 transition ${fieldErrors.email ? "border-red-400 focus:border-red-400 focus:ring-red-400/20" : "border-slate-300 focus:border-blue-500 focus:ring-blue-500/20"}`}
                 />
+                {fieldErrors.email && <p className="mt-1 text-xs text-red-500">{fieldErrors.email}</p>}
               </div>
 
               <div className="mb-4">
@@ -207,11 +213,11 @@ export default function LoginPage() {
                     id="password"
                     type={showPass ? "text" : "password"}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); setFieldErrors((p) => ({ ...p, password: undefined })); }}
                     placeholder="••••••••"
                     autoComplete="current-password"
                     required
-                    className="w-full h-11 bg-white border border-slate-300 rounded-xl px-4 pr-12 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+                    className={`w-full h-11 bg-white border rounded-xl px-4 pr-12 text-sm text-slate-900 placeholder-slate-400 outline-none focus:ring-2 transition ${fieldErrors.password ? "border-red-400 focus:border-red-400 focus:ring-red-400/20" : "border-slate-300 focus:border-blue-500 focus:ring-blue-500/20"}`}
                   />
                   <button
                     type="button"
@@ -224,6 +230,7 @@ export default function LoginPage() {
                     {showPass ? <IoEyeOff /> : <IoEye />}
                   </button>
                 </div>
+                {fieldErrors.password && <p className="mt-1 text-xs text-red-500">{fieldErrors.password}</p>}
               </div>
 
               <div className="flex items-center justify-between mb-6">

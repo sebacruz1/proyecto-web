@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { IoClose } from "react-icons/io5";
+import { api, ApiError } from "@/lib/api";
 
 type RegisterModalProps = {
   isOpen: boolean;
@@ -15,19 +16,25 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [registerError, setRegisterError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [serverError, setServerError] = useState("");
   const [registerSuccess, setRegisterSuccess] = useState("");
+
   const sanitizeEmail = (value: string) => value.trim().toLowerCase();
 
-  const closeModal = () => {
-    onClose();
-  };
+  const clearFieldError = (field: string) =>
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
 
   const handleRegisterSubmit = async (
     e: React.SubmitEvent<HTMLFormElement>,
   ) => {
     e.preventDefault();
-    setRegisterError("");
+    setServerError("");
     setRegisterSuccess("");
 
     const cleanFirstName = firstName.trim();
@@ -37,65 +44,57 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
     const cleanEmail = sanitizeEmail(registerEmail);
     setRegisterEmail(cleanEmail);
 
-    if (
-      !cleanFirstName ||
-      !cleanLastName ||
-      !cleanRut ||
-      !cleanAddress ||
-      !cleanEmail ||
-      !registerPassword ||
-      !registerConfirmPassword
-    ) {
-      setRegisterError("Completa todos los campos.");
+    const errors: Record<string, string> = {};
+    if (!cleanFirstName) errors.firstName = "El nombre es obligatorio.";
+    if (!cleanLastName) errors.lastName = "El apellido es obligatorio.";
+    if (!cleanRut) errors.rut = "El RUT es obligatorio.";
+    if (!cleanAddress) errors.address = "La dirección es obligatoria.";
+    if (!cleanEmail) errors.email = "El correo electrónico es obligatorio.";
+    if (!registerPassword) errors.password = "La contraseña es obligatoria.";
+    else if (registerPassword.length < 6)
+      errors.password = "Mínimo 6 caracteres.";
+    if (!registerConfirmPassword)
+      errors.confirmPassword = "Confirma tu contraseña.";
+    else if (registerPassword !== registerConfirmPassword)
+      errors.confirmPassword = "Las contraseñas no coinciden.";
+    if (!acceptedTerms)
+      errors.terms = "Debes aceptar los términos y condiciones.";
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
 
-    if (registerPassword.length < 6) {
-      setRegisterError("La contraseña debe tener al menos 6 caracteres.");
-      return;
-    }
-
-    if (registerPassword !== registerConfirmPassword) {
-      setRegisterError("Las contraseñas no coinciden.");
-      return;
-    }
-
-    if (!acceptedTerms) {
-      setRegisterError("Debes aceptar los términos y condiciones.");
-      return;
-    }
+    setFieldErrors({});
 
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "";
-      const response = await fetch(`${apiBaseUrl}/api/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName: cleanFirstName,
-          lastName: cleanLastName,
-          rut: cleanRut,
-          address: cleanAddress,
-          email: cleanEmail,
-          password: registerPassword,
-        }),
+      await api.post("/api/register", {
+        firstName: cleanFirstName,
+        lastName: cleanLastName,
+        rut: cleanRut,
+        address: cleanAddress,
+        email: cleanEmail,
+        password: registerPassword,
       });
-
-      const payload = (await response.json()) as { message?: string };
-
-      if (!response.ok) {
-        setRegisterError(payload.message ?? "Error al crear la cuenta.");
-        return;
-      }
-
       setRegisterSuccess("¡Cuenta creada! Ya puedes iniciar sesión.");
-    } catch {
-      setRegisterError("No se pudo conectar al servidor.");
+    } catch (e) {
+      if (e instanceof ApiError) {
+        if (e.fields) setFieldErrors(e.fields);
+        setServerError(e.message);
+      } else {
+        setServerError("No se pudo conectar al servidor.");
+      }
     }
   };
 
-  if (!isOpen) {
-    return null;
-  }
+  if (!isOpen) return null;
+
+  const inputClass = (field: string) =>
+    `h-11 w-full rounded-xl border px-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+      fieldErrors[field]
+        ? "border-red-400 focus:border-red-400 focus:ring-red-400/20"
+        : "border-slate-300 focus:border-blue-500 focus:ring-blue-500/20"
+    }`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
@@ -106,7 +105,7 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
           </h3>
           <button
             type="button"
-            onClick={closeModal}
+            onClick={onClose}
             className="rounded-md p-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
             aria-label="Cerrar modal"
           >
@@ -131,11 +130,19 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
                 id="registerFirstName"
                 type="text"
                 value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setFirstName(e.target.value);
+                  clearFieldError("firstName");
+                }}
+                className={inputClass("firstName")}
                 placeholder="Tu nombre"
                 autoComplete="given-name"
               />
+              {fieldErrors.firstName && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.firstName}
+                </p>
+              )}
             </div>
 
             <div>
@@ -149,11 +156,19 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
                 id="registerLastName"
                 type="text"
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setLastName(e.target.value);
+                  clearFieldError("lastName");
+                }}
+                className={inputClass("lastName")}
                 placeholder="Tu apellido"
                 autoComplete="family-name"
               />
+              {fieldErrors.lastName && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.lastName}
+                </p>
+              )}
             </div>
 
             <div>
@@ -167,10 +182,16 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
                 id="registerRut"
                 type="text"
                 value={rut}
-                onChange={(e) => setRut(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setRut(e.target.value);
+                  clearFieldError("rut");
+                }}
+                className={inputClass("rut")}
                 placeholder="12.345.678-9"
               />
+              {fieldErrors.rut && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.rut}</p>
+              )}
             </div>
 
             <div>
@@ -184,11 +205,19 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
                 id="registerAddress"
                 type="text"
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setAddress(e.target.value);
+                  clearFieldError("address");
+                }}
+                className={inputClass("address")}
                 placeholder="Tu dirección"
                 autoComplete="street-address"
               />
+              {fieldErrors.address && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.address}
+                </p>
+              )}
             </div>
 
             <div className="md:col-span-2">
@@ -202,12 +231,18 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
                 id="registerEmail"
                 type="email"
                 value={registerEmail}
-                onChange={(e) => setRegisterEmail(e.target.value)}
+                onChange={(e) => {
+                  setRegisterEmail(e.target.value);
+                  clearFieldError("email");
+                }}
                 onBlur={() => setRegisterEmail((prev) => sanitizeEmail(prev))}
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className={inputClass("email")}
                 placeholder="usuario@email.com"
                 autoComplete="email"
               />
+              {fieldErrors.email && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.email}</p>
+              )}
             </div>
 
             <div>
@@ -221,11 +256,19 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
                 id="registerPassword"
                 type="password"
                 value={registerPassword}
-                onChange={(e) => setRegisterPassword(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setRegisterPassword(e.target.value);
+                  clearFieldError("password");
+                }}
+                className={inputClass("password")}
                 placeholder="Mínimo 6 caracteres"
                 autoComplete="new-password"
               />
+              {fieldErrors.password && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.password}
+                </p>
+              )}
             </div>
 
             <div>
@@ -239,42 +282,60 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
                 id="registerConfirmPassword"
                 type="password"
                 value={registerConfirmPassword}
-                onChange={(e) => setRegisterConfirmPassword(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setRegisterConfirmPassword(e.target.value);
+                  clearFieldError("confirmPassword");
+                }}
+                className={inputClass("confirmPassword")}
                 placeholder="Repite tu contraseña"
                 autoComplete="new-password"
               />
+              {fieldErrors.confirmPassword && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.confirmPassword}
+                </p>
+              )}
             </div>
           </div>
 
-          <label className="mb-4 flex cursor-pointer items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+          <label
+            className={`mb-1 flex cursor-pointer items-start gap-2 rounded-xl border px-3 py-2 ${fieldErrors.terms ? "border-red-300 bg-red-50" : "border-slate-200 bg-slate-50"}`}
+          >
             <input
               type="checkbox"
               checked={acceptedTerms}
-              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              onChange={(e) => {
+                setAcceptedTerms(e.target.checked);
+                clearFieldError("terms");
+              }}
               className="mt-0.5 h-4 w-4 rounded accent-blue-700"
             />
             <span className="text-sm text-slate-700">
               Acepto los términos y condiciones.
             </span>
           </label>
+          {fieldErrors.terms && (
+            <p className="mb-3 mt-1 text-xs text-red-500">
+              {fieldErrors.terms}
+            </p>
+          )}
 
-          {registerError && (
-            <div className="mb-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-              <p className="text-sm text-red-500">{registerError}</p>
+          {serverError && (
+            <div className="mb-3 mt-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
+              <p className="text-sm text-red-500">{serverError}</p>
             </div>
           )}
 
           {registerSuccess && (
-            <div className="mb-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
+            <div className="mb-3 mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
               <p className="text-sm text-emerald-600">{registerSuccess}</p>
             </div>
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="mt-4 flex items-center gap-2">
             <button
               type="button"
-              onClick={closeModal}
+              onClick={onClose}
               className="h-11 flex-1 rounded-xl border border-slate-300 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
             >
               Cancelar

@@ -1,13 +1,9 @@
 import { clearAuthUser, getAuthUser } from "@/lib/authUser";
+import { api } from "@/lib/api";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 const GPS_INTERVAL_MS = 30_000;
-
-function authHeaders(token: string) {
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-}
 
 function getCurrentPosition(): Promise<GeolocationCoordinates> {
   return new Promise((resolve, reject) =>
@@ -38,30 +34,28 @@ export function usePatrolDashboard() {
     }
   }, [navigate, user]);
 
-  // Verificar si ya hay un turno activo al cargar
   useEffect(() => {
     if (!user?.token) return;
-    fetch(`${BASE}/api/shifts/active`, { headers: authHeaders(user.token) })
-      .then((r) => r.json())
+    api
+      .get<{ id?: number }>("/api/shifts/active")
       .then((data) => {
         if (data?.id) {
           setShiftId(data.id);
-          startGpsInterval(data.id, user.token);
+          startGpsInterval(data.id);
         }
       })
       .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function startGpsInterval(id: number, token: string) {
+  function startGpsInterval(id: number) {
     if (intervalRef.current) return;
     intervalRef.current = setInterval(async () => {
       try {
         const coords = await getCurrentPosition();
         setPosition({ lat: coords.latitude, lng: coords.longitude });
-        await fetch(`${BASE}/api/shifts/${id}/gps`, {
-          method: "POST",
-          headers: authHeaders(token),
-          body: JSON.stringify({ lat: coords.latitude, lng: coords.longitude }),
+        await api.post(`/api/shifts/${id}/gps`, {
+          lat: coords.latitude,
+          lng: coords.longitude,
         });
       } catch {
         // silencioso si el GPS falla puntualmente
@@ -85,24 +79,17 @@ export function usePatrolDashboard() {
       const pos = { lat: coords.latitude, lng: coords.longitude };
       setPosition(pos);
 
-      const res = await fetch(`${BASE}/api/shifts/start`, {
-        method: "POST",
-        headers: authHeaders(user.token),
-        body: JSON.stringify(pos),
-      });
-      const data = await res.json() as { shiftId?: number; message?: string };
-
-      if (!res.ok && res.status !== 409) {
-        setGpsError(data.message ?? "Error al iniciar turno.");
-        return;
-      }
-
-      const id = data.shiftId!;
-      setShiftId(id);
-      startGpsInterval(id, user.token);
+      const data = await api.post<{ shiftId: number }>(
+        "/api/shifts/start",
+        pos,
+      );
+      setShiftId(data.shiftId);
+      startGpsInterval(data.shiftId);
     } catch (e) {
       if (e instanceof GeolocationPositionError) {
-        setGpsError("No se pudo obtener tu ubicación. Activa el GPS e intenta de nuevo.");
+        setGpsError(
+          "No se pudo obtener tu ubicación. Activa el GPS e intenta de nuevo.",
+        );
       } else {
         setGpsError("Error al conectar con el servidor.");
       }
@@ -116,10 +103,9 @@ export function usePatrolDashboard() {
     setLoading(true);
     try {
       const coords = await getCurrentPosition().catch(() => null);
-      await fetch(`${BASE}/api/shifts/${shiftId}/end`, {
-        method: "POST",
-        headers: authHeaders(user.token),
-        body: JSON.stringify({ lat: coords?.latitude ?? null, lng: coords?.longitude ?? null }),
+      await api.post(`/api/shifts/${shiftId}/end`, {
+        lat: coords?.latitude ?? null,
+        lng: coords?.longitude ?? null,
       });
       stopGpsInterval();
       setShiftId(null);

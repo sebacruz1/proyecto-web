@@ -7,7 +7,12 @@ import rateLimit from "express-rate-limit";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
-const jwtSecret = process.env.JWT_SECRET ?? "curanto";
+
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret) {
+  console.error("JWT_SECRET no está configurado.");
+  process.exit(1);
+}
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST ?? "127.0.0.1",
@@ -115,20 +120,30 @@ const registerRateLimit = rateLimit({
 
 app.post("/api/register", registerRateLimit, async (req, res) => {
   const { firstName, lastName, rut, address, email, password } = req.body ?? {};
-  if (!firstName || !lastName || !rut || !address || !email || !password) {
-    return res
-      .status(400)
-      .json({ message: "Todos los campos son obligatorios." });
-  }
 
-  if (String(email).length > 254 || String(password).length > 72) {
-    return res.status(400).json({ message: "Datos con formato inválido." });
-  }
+  const fieldErrors = {};
+  if (!firstName || !String(firstName).trim())
+    fieldErrors.firstName = "El nombre es obligatorio.";
+  if (!lastName || !String(lastName).trim())
+    fieldErrors.lastName = "El apellido es obligatorio.";
+  if (!rut || !String(rut).trim()) fieldErrors.rut = "El RUT es obligatorio.";
+  if (!address || !String(address).trim())
+    fieldErrors.address = "La dirección es obligatoria.";
+  if (!email || !String(email).trim())
+    fieldErrors.email = "El correo electrónico es obligatorio.";
+  else if (String(email).length > 254)
+    fieldErrors.email = "El correo es demasiado largo.";
+  if (!password) fieldErrors.password = "La contraseña es obligatoria.";
+  else if (String(password).length < 6)
+    fieldErrors.password = "Mínimo 6 caracteres.";
+  else if (String(password).length > 72)
+    fieldErrors.password = "La contraseña es demasiado larga.";
 
-  if (String(password).length < 6) {
-    return res
-      .status(400)
-      .json({ message: "La contraseña debe tener al menos 6 caracteres." });
+  if (Object.keys(fieldErrors).length > 0) {
+    return res.status(400).json({
+      message: "Hay campos obligatorios sin completar.",
+      fields: fieldErrors,
+    });
   }
 
   try {
@@ -168,32 +183,33 @@ app.post("/api/users", verificarToken, soloAdmin, async (req, res) => {
   const { firstName, lastName, rut, address, email, phone, password, role } =
     req.body ?? {};
 
-  if (
-    !firstName ||
-    !lastName ||
-    !rut ||
-    !address ||
-    !email ||
-    !password ||
-    !role
-  ) {
-    return res
-      .status(400)
-      .json({ message: "Todos los campos son obligatorios." });
+  const fieldErrors = {};
+  if (!firstName || !String(firstName).trim())
+    fieldErrors.firstName = "El nombre es obligatorio.";
+  if (!lastName || !String(lastName).trim())
+    fieldErrors.lastName = "El apellido es obligatorio.";
+  if (!rut || !String(rut).trim()) fieldErrors.rut = "El RUT es obligatorio.";
+  if (!address || !String(address).trim())
+    fieldErrors.address = "La dirección es obligatoria.";
+  if (!email || !String(email).trim())
+    fieldErrors.email = "El correo electrónico es obligatorio.";
+  else if (String(email).length > 254)
+    fieldErrors.email = "El correo es demasiado largo.";
+  if (!password) fieldErrors.password = "La contraseña es obligatoria.";
+  else if (String(password).length < 6)
+    fieldErrors.password = "Mínimo 6 caracteres.";
+  else if (String(password).length > 72)
+    fieldErrors.password = "La contraseña es demasiado larga.";
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return res.status(400).json({
+      message: "Hay campos obligatorios sin completar.",
+      fields: fieldErrors,
+    });
   }
 
   if (!VALID_ROLES.has(role)) {
     return res.status(400).json({ message: "Rol inválido." });
-  }
-
-  if (String(email).length > 254 || String(password).length > 72) {
-    return res.status(400).json({ message: "Datos con formato inválido." });
-  }
-
-  if (String(password).length < 6) {
-    return res
-      .status(400)
-      .json({ message: "La contraseña debe tener al menos 6 caracteres." });
   }
 
   try {
@@ -231,12 +247,10 @@ app.post("/api/users", verificarToken, soloAdmin, async (req, res) => {
       ],
     );
 
-    res
-      .status(201)
-      .json({
-        message: "Usuario creado correctamente.",
-        userId: result.insertId,
-      });
+    res.status(201).json({
+      message: "Usuario creado correctamente.",
+      userId: result.insertId,
+    });
   } catch (error) {
     console.error("Error al crear usuario:", error);
     res.status(500).json({ message: "Error interno del servidor." });
@@ -502,12 +516,10 @@ app.post(
         [req.user.id],
       );
       if (active.length > 0) {
-        return res
-          .status(409)
-          .json({
-            message: "Ya tienes un turno activo.",
-            shiftId: active[0].id,
-          });
+        return res.status(409).json({
+          message: "Ya tienes un turno activo.",
+          shiftId: active[0].id,
+        });
       }
       const [result] = await pool.execute(
         "INSERT INTO shifts (patrullero_id, status, start_lat, start_lng) VALUES (?, 'activo', ?, ?)",

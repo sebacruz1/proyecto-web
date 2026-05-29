@@ -1,3 +1,8 @@
+# Environment variables — never subir al repo
+.env
+.env.*
+!.env.example
+
 # Logs
 logs
 *.log
