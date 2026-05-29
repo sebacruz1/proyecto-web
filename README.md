@@ -210,50 +210,113 @@ Los tres roles comparten el mismo `Navbar` con adaptación por prop de rol, gara
 
 ![Modelo Relacional de Base de Datos](images/ModeloRelacional.png)
 
-# EP 2.7 Pruebas Funcionales.
+# EP 2.7 Pruebas Funcionales
 
 Las pruebas en Postman estan en el archivo PruebasPostman.json
 
-## Base de datos
+---
 
-Para desarrollo local
+## Configuración del entorno
 
-### Levantar solo la base de datos
+Antes de correr el proyecto por primera vez, crea el archivo .env en la raíz del proyecto copiando el ejemplo:
 
 ```bash
-docker compose up -d database
+cp .env.example .env
 ```
 
-La base se inicializa automáticamente con:
+El `.env` ya viene configurado para el entorno Docker local. El único valor que deberías cambiar en producción es `JWT_SECRET` — genera uno con:
 
-- `db/schema.sql`
-- `db/seed.sql`
-
-esto actualmente entrega 3 usuarios básicos para poder probar reedirecciones
-
-# Bajar servicios y red
-
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
+
+---
+
+## Base de datos
+
+### Levantar la base de datos
+
+```bash
+docker compose up -d
+```
+
+La base se inicializa automáticamente con `db/schema.sql` (tablas) y `db/seed.sql` (datos de prueba).
+
+### Bajar servicios
+
+```bash
 docker compose down
 ```
 
-### Credenciales de desarrollo
-
-- Host: `localhost`
-- Puerto: `3306`
-- Base de datos: `muni_sd`
-- Usuario: `santodomingo`
-- Password: `santodomingo`
-- Root password: `root`
-
-### Re-crear la base desde cero (aplicar schema + seed nuevamente)
+### Re-crear desde cero
 
 ```bash
 docker compose down -v
 docker compose up -d database
 ```
 
-La API expone:
+### Credenciales de desarrollo (Docker)
 
-- `POST /api/login`
-- `GET /api/health`
+| Campo         | Valor          |
+| ------------- | -------------- |
+| Host          | `localhost`    |
+| Puerto        | `3306`         |
+| Base de datos | `muni_sd`      |
+| Usuario       | `santodomingo` |
+| Password      | `santodomingo` |
+| Root password | `root`         |
+
+---
+
+## Correr el proyecto
+
+```bash
+npm install
+docker compose up -d database
+npm run dev
+```
+
+Esto levanta en paralelo:
+
+- **Frontend:** `http://localhost:5173`
+- **API:** `http://localhost:3001`
+
+---
+
+## Usuarios de prueba
+
+| Rol        | Email                   | Contraseña |
+| ---------- | ----------------------- | ---------- |
+| Admin      | `admin@correo.com`      | `password` |
+| Patrullero | `patrullero@correo.com` | `password` |
+| Ciudadano  | `user@correo.com`       | `password` |
+
+---
+
+## API Endpoints
+
+### Públicos
+
+| Método | Ruta             | Descripción                 |
+| ------ | ---------------- | --------------------------- |
+| GET    | `/api/health`    | Estado del servidor y la BD |
+| POST   | `/api/login`     | Iniciar sesión, retorna JWT |
+| POST   | `/api/register`  | Registrar nuevo ciudadano   |
+| GET    | `/api/incidents` | Listar todos los incidentes |
+
+### Protegidos — requieren `Authorization: Bearer <token>`
+
+| Método | Ruta                  | Rol requerido | Descripción                           |
+| ------ | --------------------- | ------------- | ------------------------------------- |
+| GET    | `/api/stats`          | admin         | Estadísticas del dashboard            |
+| GET    | `/api/users`          | admin         | Listar usuarios (filtro por `?role=`) |
+| POST   | `/api/users`          | admin         | Crear usuario                         |
+| GET    | `/api/roles`          | admin         | Listar roles disponibles              |
+| POST   | `/api/assignments`    | admin         | Asignar patrullero a incidente        |
+| PUT    | `/api/incidents/:id`  | admin         | Actualizar estado de incidente        |
+| DELETE | `/api/incidents/:id`  | admin         | Eliminar incidente                    |
+| POST   | `/api/incidents`      | cualquier rol | Reportar nuevo incidente              |
+| GET    | `/api/shifts/active`  | patrullero    | Obtener turno activo                  |
+| POST   | `/api/shifts/start`   | patrullero    | Iniciar turno con ubicación GPS       |
+| POST   | `/api/shifts/:id/end` | patrullero    | Finalizar turno                       |
+| POST   | `/api/shifts/:id/gps` | patrullero    | Registrar punto GPS durante turno     |
