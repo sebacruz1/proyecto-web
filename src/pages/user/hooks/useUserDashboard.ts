@@ -1,10 +1,10 @@
 import { clearAuthUser, getAuthUser } from "@/lib/authUser";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export function useUserDashboard() {
   const navigate = useNavigate();
-  const user = getAuthUser();
+  const [user] = useState(() => getAuthUser());
 
   useEffect(() => {
     if (!user || user.role !== "user") {
