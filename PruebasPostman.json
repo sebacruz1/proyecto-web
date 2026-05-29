@@ -1,0 +1,507 @@
+{
+  "info": {
+    "_postman_id": "1db7b98b-dc7d-439c-b803-c4d4fd1de189",
+    "name": "Proyecto Web - API Municipal",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "39212049"
+  },
+  "item": [
+    {
+      "name": "Login (admin)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.token) {",
+              "  pm.collectionVariables.set('token', res.token);",
+              "  console.log('Token guardado:', res.token.slice(0, 30) + '...');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@correo.com\",\n  \"password\": \"password\"\n}"
+        },
+        "url": {
+          "raw": "{{base}}/api/login",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login (patrullero)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.token) {",
+              "  pm.collectionVariables.set('token', res.token);",
+              "  console.log('Token guardado:', res.token.slice(0, 30) + '...');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"patrullero@correo.com\",\n  \"password\": \"password\"\n}"
+        },
+        "url": {
+          "raw": "{{base}}/api/login",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login (ciudadano)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.token) {",
+              "  pm.collectionVariables.set('token', res.token);",
+              "  console.log('Token guardado:', res.token.slice(0, 30) + '...');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@correo.com\",\n  \"password\": \"password\"\n}"
+        },
+        "url": {
+          "raw": "{{base}}/api/login",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login - credenciales incorrectas (401)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"noexiste@correo.com\",\n  \"password\": \"mal\"\n}"
+        },
+        "url": {
+          "raw": "{{base}}/api/login",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Register - nuevo ciudadano",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Prueba\",\n  \"lastName\": \"Postman\",\n  \"rut\": \"11.111.111-1\",\n  \"address\": \"Av. Falsa 123\",\n  \"email\": \"prueba@postman.com\",\n  \"password\": \"clave123\"\n}"
+        },
+        "url": {
+          "raw": "{{base}}/api/register",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Register - campos vacíos (400 + fields)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{base}}/api/register",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Register - contraseña corta (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"rut\": \"11.111.111-1\",\n  \"address\": \"Calle 1\",\n  \"email\": \"test@correo.com\",\n  \"password\": \"123\"\n}"
+        },
+        "url": {
+          "raw": "{{base}}/api/register",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Incidentes (público)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/api/incidents",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "incidents"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "PUT Incidente - actualizar estado (admin)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"resuelto\"\n}"
+        },
+        "url": {
+          "raw": "{{base}}/api/incidents/1",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "incidents",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "DELETE Incidente (admin)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/incidents/1",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "incidents",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Stats (solo admin)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/stats",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "stats"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Stats - sin token (401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base}}/api/stats",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "stats"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Usuarios por rol (admin)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/users?role=patrullero",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "users"
+          ],
+          "query": [
+            {
+              "key": "role",
+              "value": "patrullero"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST Crear usuario (admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"Carlos\",\n  \"lastName\": \"Rojas\",\n  \"rut\": \"18.765.432-1\",\n  \"address\": \"Calle 5 Norte 123\",\n  \"email\": \"carlos.nuevo@correo.com\",\n  \"password\": \"clave123\",\n  \"role\": \"patrullero\"\n}"
+        },
+        "url": {
+          "raw": "{{base}}/api/users",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "POST Crear usuario - campos vacíos (400 + fields)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{base}}/api/users",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "users"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Roles (admin)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/roles",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "roles"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Turno activo (patrullero)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base}}/api/shifts/active",
+          "host": [
+            "{{base}}"
+          ],
+          "path": [
+            "api",
+            "shifts",
+            "active"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}
