@@ -2,9 +2,12 @@ import cors from "cors";
 import express from "express";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import rateLimit from "express-rate-limit";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
+const jwtSecret = process.env.JWT_SECRET ?? "curanto";
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST ?? "127.0.0.1",
@@ -19,6 +22,19 @@ const pool = mysql.createPool({
 app.use(cors());
 app.use(express.json());
 
+const loginRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Demasiados intentos. Intenta de nuevo en 15 minutos." },
+});
+
+const DUMMY_HASH = await bcrypt.hash("__dummy__", 12);
+
+const [rolesRows] = await pool.execute("SELECT name FROM roles");
+const VALID_ROLES = new Set(rolesRows.map((r) => r.name));
+
 app.get("/api/health", async (_req, res) => {
   try {
     await pool.query("SELECT 1");
@@ -30,117 +46,371 @@ app.get("/api/health", async (_req, res) => {
   }
 });
 
-app.post("/api/login", async (req, res) => {
+app.post("/api/login", loginRateLimit, async (req, res) => {
   const { email, password } = req.body ?? {};
 
   if (!email || !password) {
     res.status(400).json({ message: "Email y contraseña son obligatorios." });
     return;
   }
-  try{
 
+  if (String(email).length > 254 || String(password).length > 72) {
+    res.status(400).json({ message: "Credenciales con formato inválido." });
+    return;
+  }
+
+  try {
     const [rows] = await pool.execute(
-      "SELECT id, email, role, password, first_name, last_name, rut, address FROM users WHERE email = ? LIMIT 1",
+      `SELECT u.id, u.email, u.password, u.first_name, u.last_name, u.rut, u.address,
+              r.id AS role_id, r.name AS role, r.display_name AS role_display
+       FROM users u JOIN roles r ON r.id = u.role_id
+       WHERE u.email = ? LIMIT 1`,
       [String(email).trim().toLowerCase()],
     );
 
     const user = rows[0];
+    const suppliedPassword = String(password);
+    const storedHash = user ? String(user.password) : DUMMY_HASH;
 
-    if (!user || user.password !== password) {
+    const matches = await bcrypt.compare(suppliedPassword, storedHash);
+    if (!matches || !user) {
       res.status(401).json({ message: "Credenciales incorrectas." });
       return;
     }
-    const secretKey = process.env.JWT_SECRET ?? "curanto";
+
     const token = jwt.sign(
-      {id: user.id, role: user.role, email: user.email},
-      secretKey,
-      { expiresIn: "8h"}
+      { id: user.id, role: user.role, roleId: user.role_id, email: user.email },
+      jwtSecret,
+      { expiresIn: "8h" },
     );
 
     res.json({
       id: user.id,
       email: user.email,
       role: user.role,
+      roleId: user.role_id,
+      roleDisplay: user.role_display,
       firstName: user.first_name,
       lastName: user.last_name,
       rut: user.rut,
       address: user.address,
+      token,
       message: "Login correcto.",
     });
-} catch (error){
-  console.error("Error en login", error);
-  res.status(500).json({message: "Error interno del servidor."});
-}
+  } catch (error) {
+    console.error("Error en login", error);
+    res.status(500).json({ message: "Error interno del servidor." });
+  }
 });
 
-// Middleware para verificar el Token
-const verificarToken = (req, res, next) => {
+const registerRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Demasiados registros desde esta IP. Intenta en 1 hora.",
+  },
+});
+
+app.post("/api/register", registerRateLimit, async (req, res) => {
+  const { firstName, lastName, rut, address, email, password } = req.body ?? {};
+  if (!firstName || !lastName || !rut || !address || !email || !password) {
+    return res
+      .status(400)
+      .json({ message: "Todos los campos son obligatorios." });
+  }
+
+  if (String(email).length > 254 || String(password).length > 72) {
+    return res.status(400).json({ message: "Datos con formato inválido." });
+  }
+
+  if (String(password).length < 6) {
+    return res
+      .status(400)
+      .json({ message: "La contraseña debe tener al menos 6 caracteres." });
+  }
+
+  try {
+    const cleanEmail = String(email).trim().toLowerCase();
+    const [existing] = await pool.execute(
+      "SELECT id FROM users WHERE email = ? OR rut = ? LIMIT 1",
+      [cleanEmail, String(rut).trim()],
+    );
+
+    if (existing.length > 0) {
+      return res
+        .status(409)
+        .json({ message: "El correo o RUT ya está registrado." });
+    }
+    const hashedPassword = await bcrypt.hash(String(password), 12);
+
+    await pool.execute(
+      "INSERT INTO users (first_name, last_name, rut, address, email, password, role_id) VALUES (?, ?, ?, ?, ?, ?, 3)",
+      [
+        String(firstName).trim(),
+        String(lastName).trim(),
+        String(rut).trim(),
+        String(address).trim(),
+        cleanEmail,
+        hashedPassword,
+      ],
+    );
+
+    res.status(201).json({ message: "Cuenta creada correctamente." });
+  } catch (error) {
+    console.error("Error en registro:", error);
+    res.status(500).json({ message: "Error interno del servidor." });
+  }
+});
+
+app.post("/api/users", verificarToken, soloAdmin, async (req, res) => {
+  const { firstName, lastName, rut, address, email, phone, password, role } =
+    req.body ?? {};
+
+  if (
+    !firstName ||
+    !lastName ||
+    !rut ||
+    !address ||
+    !email ||
+    !password ||
+    !role
+  ) {
+    return res
+      .status(400)
+      .json({ message: "Todos los campos son obligatorios." });
+  }
+
+  if (!VALID_ROLES.has(role)) {
+    return res.status(400).json({ message: "Rol inválido." });
+  }
+
+  if (String(email).length > 254 || String(password).length > 72) {
+    return res.status(400).json({ message: "Datos con formato inválido." });
+  }
+
+  if (String(password).length < 6) {
+    return res
+      .status(400)
+      .json({ message: "La contraseña debe tener al menos 6 caracteres." });
+  }
+
+  try {
+    const cleanEmail = String(email).trim().toLowerCase();
+
+    const [existing] = await pool.execute(
+      "SELECT id FROM users WHERE email = ? OR rut = ? LIMIT 1",
+      [cleanEmail, String(rut).trim()],
+    );
+
+    if (existing.length > 0) {
+      return res
+        .status(409)
+        .json({ message: "El correo o RUT ya está registrado." });
+    }
+
+    const [[roleRow]] = await pool.execute(
+      "SELECT id FROM roles WHERE name = ? LIMIT 1",
+      [role],
+    );
+
+    const hashedPassword = await bcrypt.hash(String(password), 12);
+
+    const [result] = await pool.execute(
+      "INSERT INTO users (first_name, last_name, rut, address, email, phone, password, role_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [
+        String(firstName).trim(),
+        String(lastName).trim(),
+        String(rut).trim(),
+        String(address).trim(),
+        cleanEmail,
+        phone ? String(phone).trim() : null,
+        hashedPassword,
+        roleRow.id,
+      ],
+    );
+
+    res
+      .status(201)
+      .json({
+        message: "Usuario creado correctamente.",
+        userId: result.insertId,
+      });
+  } catch (error) {
+    console.error("Error al crear usuario:", error);
+    res.status(500).json({ message: "Error interno del servidor." });
+  }
+});
+
+function verificarToken(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Acceso denegado. Token no proporcionado." });
+    return res
+      .status(401)
+      .json({ message: "Acceso denegado. Token no proporcionado." });
   }
 
   const token = authHeader.split(" ")[1];
 
   try {
-    const secretKey = process.env.JWT_SECRET ?? "super_secreto_desarrollo_2026";
-    const decoded = jwt.verify(token, secretKey);
-    req.user = decoded; // Guardamos los datos del usuario en la request
-    next(); // Permitimos que la petición continúe hacia el endpoint
-  } catch (error) {
+    const decoded = jwt.verify(token, jwtSecret);
+    req.user = decoded;
+    next();
+  } catch {
     return res.status(403).json({ message: "Token inválido o expirado." });
   }
-};
+}
 
-app.get("/api/incidents", async (req, res) => {
+function soloAdmin(req, res, next) {
+  if (req.user?.role !== "admin") {
+    return res
+      .status(403)
+      .json({ message: "Acceso restringido a administradores." });
+  }
+  next();
+}
+
+app.get("/api/roles", verificarToken, soloAdmin, async (_req, res) => {
   try {
-    // Obtenemos los incidentes y hacemos un JOIN para traer el nombre del usuario (si no es anónimo)
-    const [rows] = await pool.execute(`
-      SELECT 
-        i.*,
-        u.first_name,
-        u.last_name
-      FROM incidents i
-      LEFT JOIN users u ON i.user_id = u.id
-      ORDER BY i.created_at DESC
-    `);
-    
+    const [rows] = await pool.execute(
+      "SELECT id, name, display_name FROM roles ORDER BY id",
+    );
     res.json(rows);
   } catch (error) {
-    console.error("Error obteniendo incidentes:", error);
-    res.status(500).json({ message: "Error al obtener incidentes de la base de datos." });
+    console.error("Error obteniendo roles:", error);
+    res.status(500).json({ message: "Error al obtener roles." });
   }
 });
 
-app.post("/api/incidents", verificarToken,async (req, res) => {
-  const { user_id, type, description, lat, lng, is_anonymous, media_url } = req.body;
+app.get("/api/stats", verificarToken, soloAdmin, async (_req, res) => {
+  try {
+    const [[{ casesThisMonth }]] = await pool.execute(
+      `SELECT COUNT(*) AS casesThisMonth FROM incidents
+       WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())`,
+    );
+    const [[{ casesResolved }]] = await pool.execute(
+      `SELECT COUNT(*) AS casesResolved FROM incidents WHERE status = 'resuelto'`,
+    );
+    const [byType] = await pool.execute(
+      `SELECT type, COUNT(*) AS total FROM incidents GROUP BY type ORDER BY total DESC`,
+    );
+    res.json({ casesThisMonth, casesResolved, byType });
+  } catch (error) {
+    console.error("Error obteniendo stats:", error);
+    res.status(500).json({ message: "Error al obtener estadísticas." });
+  }
+});
 
-  // Validación básica requerida en EP 2.3
-  if (!type || !description || !lat || !lng) {
-    return res.status(400).json({ message: "Faltan campos obligatorios para el reporte." });
+app.get("/api/users", verificarToken, soloAdmin, async (req, res) => {
+  const { role } = req.query;
+  const validRoles = ["admin", "user", "patrullero"];
+  if (role && !validRoles.includes(String(role))) {
+    return res.status(400).json({ message: "Rol inválido." });
+  }
+  try {
+    const [rows] = role
+      ? await pool.execute(
+          `SELECT u.id, u.first_name, u.last_name, u.email, u.phone,
+                  r.id AS role_id, r.name AS role, r.display_name AS role_display
+           FROM users u JOIN roles r ON r.id = u.role_id
+           WHERE r.name = ? ORDER BY u.first_name`,
+          [String(role)],
+        )
+      : await pool.execute(
+          `SELECT u.id, u.first_name, u.last_name, u.email, u.phone,
+                  r.id AS role_id, r.name AS role, r.display_name AS role_display
+           FROM users u JOIN roles r ON r.id = u.role_id
+           ORDER BY r.name, u.first_name`,
+        );
+    res.json(rows);
+  } catch (error) {
+    console.error("Error obteniendo usuarios:", error);
+    res.status(500).json({ message: "Error al obtener usuarios." });
+  }
+});
+
+app.post("/api/assignments", verificarToken, soloAdmin, async (req, res) => {
+  const { incidentId, patrulleroId } = req.body ?? {};
+  if (!incidentId || !patrulleroId) {
+    return res
+      .status(400)
+      .json({ message: "incidentId y patrulleroId son obligatorios." });
+  }
+  try {
+    await pool.execute(
+      `INSERT INTO assignments (incident_id, patrullero_id, status) VALUES (?, ?, 'asignado')
+       ON DUPLICATE KEY UPDATE status = 'asignado', assigned_at = CURRENT_TIMESTAMP`,
+      [incidentId, patrulleroId],
+    );
+    await pool.execute(
+      "UPDATE incidents SET status = 'en_desarrollo' WHERE id = ? AND status = 'recibido'",
+      [incidentId],
+    );
+    res.status(201).json({ message: "Patrullero asignado correctamente." });
+  } catch (error) {
+    console.error("Error al asignar:", error);
+    res.status(500).json({ message: "Error al crear la asignación." });
+  }
+});
+
+app.get("/api/incidents", async (_req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT
+        i.*,
+        u.first_name,
+        u.last_name,
+        p.first_name  AS patrullero_first_name,
+        p.last_name   AS patrullero_last_name,
+        a.status      AS assignment_status
+      FROM incidents i
+      LEFT JOIN users u ON i.user_id = u.id
+      LEFT JOIN assignments a ON a.incident_id = i.id
+      LEFT JOIN users p ON p.id = a.patrullero_id
+      ORDER BY i.created_at DESC
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error("Error obteniendo incidentes:", error);
+    res
+      .status(500)
+      .json({ message: "Error al obtener incidentes de la base de datos." });
+  }
+});
+
+app.post("/api/incidents", verificarToken, async (req, res) => {
+  const { type, description, lat, lng, media_url } = req.body ?? {};
+
+  if (!type || !description || lat == null || lng == null) {
+    return res
+      .status(400)
+      .json({ message: "Faltan campos obligatorios para el reporte." });
   }
 
   try {
     const [result] = await pool.execute(
-      `INSERT INTO incidents (user_id, type, description, lat, lng, is_anonymous, media_url) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [user_id || null, type, description, lat, lng, is_anonymous || false, media_url || null]
+      `INSERT INTO incidents (user_id, type, description, lat, lng, media_url)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [req.user.id, type, description, lat, lng, media_url ?? null],
     );
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: "Incidente reportado con éxito.",
-      incidentId: result.insertId 
+      incidentId: result.insertId,
     });
   } catch (error) {
     console.error("Error al crear incidente:", error);
-    res.status(500).json({ message: "Error interno del servidor al crear el incidente." });
+    res
+      .status(500)
+      .json({ message: "Error interno del servidor al crear el incidente." });
   }
 });
 
-app.put("/api/incidents/:id", verificarToken,async (req, res) => {
-  const { id } = req.params; // Viene en la URL
-  const { status } = req.body; // Viene desde el frontend
+app.put("/api/incidents/:id", verificarToken, soloAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body ?? {};
 
   if (!status) {
     return res.status(400).json({ message: "El nuevo estado es obligatorio." });
@@ -149,7 +419,7 @@ app.put("/api/incidents/:id", verificarToken,async (req, res) => {
   try {
     const [result] = await pool.execute(
       "UPDATE incidents SET status = ? WHERE id = ?",
-      [status, id]
+      [status, id],
     );
 
     if (result.affectedRows === 0) {
@@ -163,24 +433,155 @@ app.put("/api/incidents/:id", verificarToken,async (req, res) => {
   }
 });
 
-app.delete("/api/incidents/:id", verificarToken,async (req, res) => {
-  const { id } = req.params;
+app.delete(
+  "/api/incidents/:id",
+  verificarToken,
+  soloAdmin,
+  async (req, res) => {
+    const { id } = req.params;
 
-  try {
-    const [result] = await pool.execute("DELETE FROM incidents WHERE id = ?", [id]);
+    try {
+      const [result] = await pool.execute(
+        "DELETE FROM incidents WHERE id = ?",
+        [id],
+      );
 
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "Incidente no encontrado." });
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Incidente no encontrado." });
+      }
+
+      res.json({ message: "Incidente eliminado correctamente." });
+    } catch (error) {
+      console.error("Error al eliminar incidente:", error);
+      res.status(500).json({ message: "Error interno del servidor." });
     }
+  },
+);
 
-    res.json({ message: "Incidente eliminado correctamente." });
-  } catch (error) {
-    console.error("Error al eliminar incidente:", error);
-    res.status(500).json({ message: "Error interno del servidor." });
+function soloPatrullero(req, res, next) {
+  if (req.user?.role !== "patrullero") {
+    return res
+      .status(403)
+      .json({ message: "Acceso restringido a patrulleros." });
   }
-});
+  next();
+}
 
+app.get(
+  "/api/shifts/active",
+  verificarToken,
+  soloPatrullero,
+  async (req, res) => {
+    try {
+      const [rows] = await pool.execute(
+        "SELECT id, start_time, start_lat, start_lng FROM shifts WHERE patrullero_id = ? AND status = 'activo' LIMIT 1",
+        [req.user.id],
+      );
+      res.json(rows[0] ?? null);
+    } catch (error) {
+      console.error("Error obteniendo turno activo:", error);
+      res.status(500).json({ message: "Error interno del servidor." });
+    }
+  },
+);
 
+app.post(
+  "/api/shifts/start",
+  verificarToken,
+  soloPatrullero,
+  async (req, res) => {
+    const { lat, lng } = req.body ?? {};
+    if (lat == null || lng == null) {
+      return res
+        .status(400)
+        .json({ message: "Se requiere ubicación GPS para iniciar el turno." });
+    }
+    try {
+      const [active] = await pool.execute(
+        "SELECT id FROM shifts WHERE patrullero_id = ? AND status = 'activo' LIMIT 1",
+        [req.user.id],
+      );
+      if (active.length > 0) {
+        return res
+          .status(409)
+          .json({
+            message: "Ya tienes un turno activo.",
+            shiftId: active[0].id,
+          });
+      }
+      const [result] = await pool.execute(
+        "INSERT INTO shifts (patrullero_id, status, start_lat, start_lng) VALUES (?, 'activo', ?, ?)",
+        [req.user.id, lat, lng],
+      );
+      await pool.execute(
+        "INSERT INTO gps_tracking (shift_id, lat, lng) VALUES (?, ?, ?)",
+        [result.insertId, lat, lng],
+      );
+      res
+        .status(201)
+        .json({ message: "Turno iniciado.", shiftId: result.insertId });
+    } catch (error) {
+      console.error("Error iniciando turno:", error);
+      res.status(500).json({ message: "Error interno del servidor." });
+    }
+  },
+);
+
+app.post(
+  "/api/shifts/:id/end",
+  verificarToken,
+  soloPatrullero,
+  async (req, res) => {
+    const shiftId = Number.parseInt(req.params.id, 10);
+    const { lat, lng } = req.body ?? {};
+    try {
+      const [result] = await pool.execute(
+        `UPDATE shifts SET status = 'finalizado', end_time = CURRENT_TIMESTAMP,
+       end_lat = ?, end_lng = ? WHERE id = ? AND patrullero_id = ? AND status = 'activo'`,
+        [lat ?? null, lng ?? null, shiftId, req.user.id],
+      );
+      if (result.affectedRows === 0) {
+        return res
+          .status(404)
+          .json({ message: "Turno no encontrado o no te pertenece." });
+      }
+      res.json({ message: "Turno finalizado correctamente." });
+    } catch (error) {
+      console.error("Error finalizando turno:", error);
+      res.status(500).json({ message: "Error interno del servidor." });
+    }
+  },
+);
+
+app.post(
+  "/api/shifts/:id/gps",
+  verificarToken,
+  soloPatrullero,
+  async (req, res) => {
+    const shiftId = Number.parseInt(req.params.id, 10);
+    const { lat, lng } = req.body ?? {};
+    if (lat == null || lng == null) {
+      return res.status(400).json({ message: "lat y lng son obligatorios." });
+    }
+    try {
+      const [rows] = await pool.execute(
+        "SELECT id FROM shifts WHERE id = ? AND patrullero_id = ? AND status = 'activo' LIMIT 1",
+        [shiftId, req.user.id],
+      );
+      if (rows.length === 0) {
+        return res.status(404).json({ message: "Turno activo no encontrado." });
+      }
+      await pool.execute(
+        "INSERT INTO gps_tracking (shift_id, lat, lng) VALUES (?, ?, ?)",
+        [shiftId, lat, lng],
+      );
+      res.status(201).json({ message: "Posición registrada." });
+    } catch (error) {
+      console.error("Error registrando GPS:", error);
+      res.status(500).json({ message: "Error interno del servidor." });
+    }
+  },
+);
 
 app.listen(port, () => {
   console.log(`API escuchando en http://localhost:${port}`);
