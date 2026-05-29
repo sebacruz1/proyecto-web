@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     container_name: mysql_santodomingo
     restart: unless-stopped
-    environment:
+    environment
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: muni_sd
       MYSQL_USER: santodomingo
@@ -13,6 +13,12 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "santodomingo", "--password=santodomingo", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
 
 volumes:
   mysql_data:
