@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS roles (
     name         VARCHAR(50)  NOT NULL UNIQUE,
     display_name VARCHAR(100) NOT NULL,
     PRIMARY KEY (id)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS users (
     id         INT          NOT NULL AUTO_INCREMENT,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     FOREIGN KEY (role_id) REFERENCES roles(id)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS shifts (
     id            INT       NOT NULL AUTO_INCREMENT,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS shifts (
     FOREIGN KEY (patrullero_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT chk_shift_times CHECK (end_time IS NULL OR end_time > start_time),
     INDEX idx_shifts_patrullero (patrullero_id)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS gps_tracking (
     id          INT       NOT NULL AUTO_INCREMENT,
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS gps_tracking (
     PRIMARY KEY (id),
     FOREIGN KEY (shift_id) REFERENCES shifts(id) ON DELETE CASCADE,
     INDEX idx_gps_shift_time (shift_id, recorded_at)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS incidents (
     id           INT      NOT NULL AUTO_INCREMENT,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS incidents (
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_incidents_status_date (status, created_at)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS assignments (
     id            INT       NOT NULL AUTO_INCREMENT,
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS assignments (
     FOREIGN KEY (incident_id)   REFERENCES incidents(id) ON DELETE CASCADE,
     FOREIGN KEY (patrullero_id) REFERENCES users(id)     ON DELETE CASCADE,
     UNIQUE KEY uq_assignment (incident_id, patrullero_id)
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS incident_timeline (
     id          INT     NOT NULL AUTO_INCREMENT,
@@ -87,4 +87,4 @@ CREATE TABLE IF NOT EXISTS incident_timeline (
     PRIMARY KEY (id),
     FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE,
     FOREIGN KEY (changed_by)  REFERENCES users(id)     ON DELETE SET NULL
-);
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
