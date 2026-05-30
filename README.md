@@ -102,8 +102,8 @@ La aplicación define las siguientes rutas en App.tsx:
 | `/user/report/new`      | Formulario de reporte  | Rol: user       |
 | `/user/report/history`  | Historial de reportes  | Rol: user       |
 | `/user/report/:id`      | Seguimiento de reporte | Rol: user       |
-| `/`                     | Redirige a `/login`    | —               |
-| `*`                     | 404                    | —               |
+| `/`                     | Redirige a `/login`    | -               |
+| `*`                     | 404                    | -               |
 
 ---
 
@@ -224,7 +224,7 @@ Antes de correr el proyecto por primera vez, crea el archivo .env en la raíz de
 cp .env.example .env
 ```
 
-El `.env` ya viene configurado para el entorno Docker local. El único valor que deberías cambiar en producción es `JWT_SECRET` — genera uno con:
+El `.env` ya viene configurado para el entorno Docker local. El único valor que deberías cambiar en producción es `JWT_SECRET` - genera uno con:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
@@ -304,7 +304,7 @@ Esto levanta en paralelo:
 | POST   | `/api/register`  | Registrar nuevo ciudadano   |
 | GET    | `/api/incidents` | Listar todos los incidentes |
 
-### Protegidos — requieren `Authorization: Bearer <token>`
+### Protegidos - requieren `Authorization: Bearer <token>`
 
 | Método | Ruta                  | Rol requerido | Descripción                           |
 | ------ | --------------------- | ------------- | ------------------------------------- |
