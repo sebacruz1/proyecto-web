@@ -4,6 +4,8 @@ import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -20,6 +22,7 @@ const pool = mysql.createPool({
   user: process.env.DB_USER ?? "santodomingo",
   password: process.env.DB_PASSWORD ?? "santodomingo",
   database: process.env.DB_NAME ?? "muni_sd",
+  charset: "utf8mb4",
   waitForConnections: true,
   connectionLimit: 10,
 });
@@ -594,6 +597,12 @@ app.post(
     }
   },
 );
+
+if (process.env.NODE_ENV === "production") {
+  const distPath = join(dirname(fileURLToPath(import.meta.url)), "..", "dist");
+  app.use(express.static(distPath));
+  app.use((_req, res) => res.sendFile(join(distPath, "index.html")));
+}
 
 app.listen(port, () => {
   console.log(`API escuchando en http://localhost:${port}`);
