@@ -1,3 +1,6 @@
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
 CREATE TABLE IF NOT EXISTS roles (
     id           TINYINT      NOT NULL AUTO_INCREMENT,
     name         VARCHAR(50)  NOT NULL UNIQUE,

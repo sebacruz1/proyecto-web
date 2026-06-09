@@ -1,3 +1,6 @@
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
 -- ROLES
 INSERT INTO roles (id, name, display_name) VALUES
 (1, 'admin',      'Administrador'),
