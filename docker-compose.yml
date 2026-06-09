@@ -4,21 +4,47 @@ services:
     container_name: mysql_santodomingo
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: muni_sd
-      MYSQL_USER: usuariodb
-      MYSQL_PASSWORD: clavedb
-    ports:
-      - "3306:3306"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-muni_sd}
+      MYSQL_USER: ${DB_USER:-usuariodb}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-clavedb}
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     volumes:
       - mysql_data:/var/lib/mysql
       - ./db:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "santodomingo", "--password=santodomingo", "--silent"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 5s
       timeout: 5s
       retries: 30
       start_period: 20s
+    networks:
+      - internal
+
+  app:
+    build: .
+    container_name: app_santodomingo
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3001}:3001"
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      DB_HOST: database
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-usuariodb}
+      DB_PASSWORD: ${DB_PASSWORD:-clavedb}
+      DB_NAME: ${DB_NAME:-muni_sd}
+      PORT: 3001
+      NODE_ENV: production
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - internal
+
+networks:
+  internal:
 
 volumes:
   mysql_data:
