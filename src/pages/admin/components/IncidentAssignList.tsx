@@ -1,14 +1,16 @@
 import type { Incident, Patrullero } from "../hooks/useAdminDashboard";
 import IncidentCard from "./IncidentCard";
+import { IoTrashOutline } from "react-icons/io5";
 
 type Props = {
   incidents: Incident[];
   patrulleros: Patrullero[];
   loading: boolean;
   onAssign: (incidentId: number, patrulleroId: number) => Promise<boolean>;
+  onDelete: (incidentId: number) => Promise<boolean>;
 };
 
-export default function IncidentAssignList({ incidents, patrulleros, loading, onAssign }: Props) {
+export default function IncidentAssignList({ incidents, patrulleros, loading, onAssign, onDelete }: Props) {
   return (
     <section className="mt-4 flex flex-col gap-4">
       <div>
@@ -26,12 +28,21 @@ export default function IncidentAssignList({ incidents, patrulleros, loading, on
         </p>
       ) : (
         incidents.map((incident) => (
-          <IncidentCard
-            key={incident.id}
-            incident={incident}
-            patrulleros={patrulleros}
-            onAssign={onAssign}
-          />
+          <div key={incident.id} className="relative group">
+            <IncidentCard
+              incident={incident}
+              patrulleros={patrulleros}
+              onAssign={onAssign}
+            />
+            {/* Botón DELETE superpuesto con Tailwind */}
+            <button
+              onClick={() => onDelete(incident.id)}
+              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-500 opacity-0 shadow-sm transition-all hover:bg-red-100 group-hover:opacity-100"
+              title="Eliminar incidente"
+            >
+              <IoTrashOutline className="h-5 w-5" />
+            </button>
+          </div>
         ))
       )}
     </section>

@@ -7,16 +7,17 @@ import IncidentAssignList from "./components/IncidentAssignList";
 import AssignedIncidentList from "./components/AssignedIncidentList";
 import CreateUserModal from "./components/CreateUserModal";
 import { useAdminDashboard } from "./hooks/useAdminDashboard";
+import { useToast } from "@/components/ui/ToastProvider";
 
 export default function Dashboard() {
-  const { user, stats, pendingIncidents, assignedIncidents, patrulleros, loading, assignPatrullero, resolveIncident, handleLogout } =
+  const { user, stats, pendingIncidents, assignedIncidents, patrulleros, loading, assignPatrullero, resolveIncident, deleteIncident,handleLogout } =
     useAdminDashboard();
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
+  const { showToast } = useToast();
 
   const handleUserCreated = () => {
-    setSuccessMsg("Usuario creado correctamente.");
-    setTimeout(() => setSuccessMsg(""), 4000);
+    showToast("Usuario creado correctamente.", "success");
+    setIsCreateUserOpen(false);
   };
 
   return (
@@ -43,11 +44,7 @@ export default function Dashboard() {
           </button>
         </section>
 
-        {successMsg && (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3">
-            <p className="text-sm text-emerald-700">{successMsg}</p>
-          </div>
-        )}
+       
 
         <StatsGrid
           casesThisMonth={stats.casesThisMonth}
@@ -59,6 +56,7 @@ export default function Dashboard() {
           patrulleros={patrulleros}
           loading={loading}
           onAssign={assignPatrullero}
+          onDelete={deleteIncident}
         />
         <AssignedIncidentList
           incidents={assignedIncidents}

@@ -2,6 +2,7 @@ import { clearAuthUser, getAuthUser } from "@/lib/authUser";
 import { api, ApiError } from "@/lib/api";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/ToastProvider";
 
 export type Incident = {
   id: number;
@@ -39,6 +40,7 @@ export type Stats = {
 export function useAdminDashboard() {
   const navigate = useNavigate();
   const [user] = useState(() => getAuthUser());
+  const { showToast } = useToast();
 
   const [stats, setStats] = useState<Stats>({ casesThisMonth: 0, casesResolved: 0, byType: [] });
   const [pendingIncidents, setPendingIncidents] = useState<Incident[]>([]);
@@ -112,9 +114,11 @@ export function useAdminDashboard() {
   const resolveIncident = async (incidentId: number) => {
     try {
       await api.put(`/api/incidents/${incidentId}`, { status: "resuelto" });
+      showToast("Incidente marcado como resuelto.", "success");
       refetch();
       return true;
     } catch {
+      showToast("Error al resolver el incidente.", "error");
       return false;
     }
   };
@@ -122,9 +126,25 @@ export function useAdminDashboard() {
   const assignPatrullero = async (incidentId: number, patrulleroId: number) => {
     try {
       await api.post("/api/assignments", { incidentId, patrulleroId });
+      showToast("Patrullero asignado correctamente.", "success");
       refetch();
       return true;
     } catch {
+      showToast("Error al asignar patrullero.", "error");
+      return false;
+    }
+  };
+  
+  const deleteIncident = async (incidentId: number) => {
+    if (!window.confirm("¿Estás seguro de eliminar permanentemente este incidente?")) return false;
+    
+    try {
+      await api.delete(`/api/incidents/${incidentId}`);
+      showToast("Incidente eliminado del sistema.", "success");
+      refetch();
+      return true;
+    } catch {
+      showToast("Error al eliminar el incidente.", "error");
       return false;
     }
   };
@@ -134,5 +154,5 @@ export function useAdminDashboard() {
     navigate("/login", { replace: true });
   };
 
-  return { user, stats, pendingIncidents, assignedIncidents, patrulleros, loading, assignPatrullero, resolveIncident, handleLogout };
+  return { user, stats, pendingIncidents, assignedIncidents, patrulleros, loading, assignPatrullero, resolveIncident, deleteIncident, handleLogout };
 }
