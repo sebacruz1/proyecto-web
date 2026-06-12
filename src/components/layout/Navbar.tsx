@@ -12,27 +12,36 @@ export default function Navbar({ role, onLogout }: NavbarProps) {
         <div className="flex items-center gap-3">
           <img
             src={logo}
-            alt="Logo municipalidad de Santo Domingo"
+            alt="Escudo oficial de la Municipalidad de Santo Domingo"
             className="h-12 w-12 object-contain"
+            loading="lazy"
+            decoding="async"
+            width="48"
+            height="48"
           />
           <div className="leading-none">
-            <p className="text-base font-semibold text-blue-700 sm:text-lg">
+            {/* Ocultamos estos textos a los lectores de pantalla porque el 'alt' del logo ya da el contexto */}
+            <p className="text-base font-semibold text-blue-700 sm:text-lg" aria-hidden="true">
               Santo Domingo Seguro
             </p>
-            <p className="text-xs uppercase tracking-wide text-slate-400 sm:text-sm">
+            <p className="text-xs uppercase tracking-wide text-slate-400 sm:text-sm" aria-hidden="true">
               Municipalidad de Santo Domingo
             </p>
           </div>
         </div>
         {role && onLogout ? (
           <div className="flex items-center gap-3">
-            <div className="flex h-11 min-w-24 items-center justify-center rounded-md border border-slate-300 bg-slate-100 px-3 text-sm font-semibold text-slate-700">
+            <div 
+              className="flex h-11 min-w-24 items-center justify-center rounded-md border border-slate-300 bg-slate-100 px-3 text-sm font-semibold text-slate-700"
+              aria-label={`Rol actual: ${role}`}
+            >
               {role}
             </div>
             <button
               type="button"
               onClick={onLogout}
-              className="h-11 rounded-md bg-red-600 px-4 text-sm font-medium text-white transition hover:bg-red-500"
+              aria-label="Cerrar sesión y salir del sistema"
+              className="h-11 rounded-md bg-red-600 px-4 text-sm font-medium text-white transition hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
             >
               Salir
             </button>
