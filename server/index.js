@@ -4,6 +4,7 @@ import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
+import helmet from "helmet";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
@@ -27,7 +28,25 @@ const pool = mysql.createPool({
   connectionLimit: 10,
 });
 
-app.use(cors());
+
+app.use(helmet());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3001" 
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("No permitido por CORS. Bloqueado por seguridad."));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+
 app.use(express.json());
 
 const loginRateLimit = rateLimit({
