@@ -1,43 +1,3 @@
-/*import IncidentCard from "./AssignedIncidentCard";
-
-const ASSIGNED_INCIDENTS = [
-  {
-    id: "RD-001",
-    title: "Luminaria dañada",
-    priority: "MEDIA" as const,
-    category: "LUMINARIA",
-    date: "08/05/2026",
-  },
-  {
-    id: "RD-002",
-    title: "Vehículo sospechoso",
-    priority: "ALTA" as const,
-    category: "SEGURIDAD",
-    date: "08/05/2026",
-  },
-];
-
-export default function AssignedIncident() {
-  return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between px-1">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-          Incidentes asignados
-        </h2>
-        <span className="rounded-full bg-blue-900 px-3 py-1 text-xs font-bold text-white">
-          {ASSIGNED_INCIDENTS.length} ACTIVO(S)
-        </span>
-      </div>
-      <div className="flex flex-col gap-3">
-        {ASSIGNED_INCIDENTS.map((incident) => (
-          <IncidentCard key={incident.id} {...incident} />
-        ))}
-      </div>
-    </section>
-  );
-}
-*/
-
 import { useEffect, useState } from "react";
 import IncidentCard from "./AssignedIncidentCard";
 import { api } from "@/lib/api";
@@ -60,7 +20,7 @@ export default function AssignedIncident() {
     try {
       // Se Hace el GET a nuestra API REST
       const data = await api.get<Incident[]>("/api/incidents");
-      
+
       // Filtramos para mostrar en pantalla solo los incidentes que no estén resueltos
       const activos = data.filter((inc) => inc.status !== "resuelto");
       setIncidents(activos);
@@ -72,7 +32,6 @@ export default function AssignedIncident() {
     }
   };
 
-  // Se ejecuta automáticamente al cargar el dashboard del patrullero
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchIncidents();
@@ -97,12 +56,16 @@ export default function AssignedIncident() {
           {loading ? "..." : incidents.length} ACTIVO(S)
         </span>
       </div>
-      
+
       <div className="flex flex-col gap-3">
         {loading ? (
-          <p className="text-center text-sm text-slate-500 py-6">Cargando base de datos...</p>
+          <p className="text-center text-sm text-slate-500 py-6">
+            Cargando base de datos...
+          </p>
         ) : incidents.length === 0 ? (
-          <p className="text-center text-sm text-slate-500 py-6">No hay incidentes pendientes en la zona.</p>
+          <p className="text-center text-sm text-slate-500 py-6">
+            No hay incidentes pendientes en la zona.
+          </p>
         ) : (
           incidents.map((incident) => (
             <IncidentCard
@@ -111,10 +74,13 @@ export default function AssignedIncident() {
               title={incident.type}
               category={incident.status.replace("_", " ").toUpperCase()}
               priority={getPriority(incident.type)}
-              date={new Date(incident.created_at).toLocaleDateString("es-CL")} // Formato de fecha local
+              date={new Date(incident.created_at).toLocaleDateString("es-CL")} 
               onClick={() => {
                 // Dejamos el clic preparado para el siguiente paso (El Update del CRUD)
-                showToast(`Has seleccionado el incidente INC-${incident.id}`, "success");
+                showToast(
+                  `Has seleccionado el incidente INC-${incident.id}`,
+                  "success",
+                );
               }}
             />
           ))
@@ -123,3 +89,4 @@ export default function AssignedIncident() {
     </section>
   );
 }
+
