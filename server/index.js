@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import compression from "compression";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -7,6 +8,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 
 const app = express();
+app.use(compression());
 const port = Number(process.env.PORT ?? 3001);
 
 const jwtSecret = process.env.JWT_SECRET;
@@ -380,16 +382,15 @@ app.get("/api/users", verificarToken, soloAdmin, async (req, res) => {
                   r.id AS role_id, r.name AS role, r.display_name AS role_display
            FROM users u JOIN roles r ON r.id = u.role_id
            WHERE r.name = ? ORDER BY u.first_name
-           LIMIT ? OFFSET ?`,
-          [String(role), limitNum, offset],
+           LIMIT ${limitNum} OFFSET ${offset}`,
+          [String(role)],
         )
       : await pool.execute(
           `SELECT u.id, u.first_name, u.last_name, u.email, u.phone,
                   r.id AS role_id, r.name AS role, r.display_name AS role_display
            FROM users u JOIN roles r ON r.id = u.role_id
            ORDER BY r.name, u.first_name
-           LIMIT ? OFFSET ?`,
-          [limitNum, offset],
+           LIMIT ${limitNum} OFFSET ${offset}`,
         );
     res.json(rows);
   } catch (error) {
@@ -423,7 +424,7 @@ app.post("/api/assignments", verificarToken, soloAdmin, async (req, res) => {
 });
 
 app.get("/api/incidents", verificarToken, async (req, res) => {
-  const { status, limit = "50", page = "1" } = req.query;
+  const { status, mine, limit = "50", page = "1" } = req.query;
 
   const VALID_STATUSES = ["recibido", "en_desarrollo", "resuelto"];
   if (status && !VALID_STATUSES.includes(String(status))) {
@@ -433,12 +434,15 @@ app.get("/api/incidents", verificarToken, async (req, res) => {
   const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 50));
   const pageNum  = Math.max(1, parseInt(String(page), 10) || 1);
   const offset   = (pageNum - 1) * limitNum;
+  const onlyMine = mine === "true";
+
+  const conditions = [];
+  const params = [];
+  if (status)   { conditions.push("i.status = ?");  params.push(String(status)); }
+  if (onlyMine) { conditions.push("i.user_id = ?"); params.push(req.user.id); }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
   try {
-    const params = status
-      ? [String(status), limitNum, offset]
-      : [limitNum, offset];
-
     const [rows] = await pool.execute(`
       SELECT
         i.id, i.user_id, i.type, i.description, i.lat, i.lng,
@@ -452,16 +456,14 @@ app.get("/api/incidents", verificarToken, async (req, res) => {
       LEFT JOIN users u ON i.user_id = u.id
       LEFT JOIN assignments a ON a.incident_id = i.id
       LEFT JOIN users p ON p.id = a.patrullero_id
-      ${status ? "WHERE i.status = ?" : ""}
+      ${where}
       ORDER BY i.created_at DESC
-      LIMIT ? OFFSET ?
+      LIMIT ${limitNum} OFFSET ${offset}
     `, params);
     res.json(rows);
   } catch (error) {
     console.error("Error obteniendo incidentes:", error);
-    res
-      .status(500)
-      .json({ message: "Error al obtener incidentes de la base de datos." });
+    res.status(500).json({ message: "Error al obtener incidentes de la base de datos." });
   }
 });
 
