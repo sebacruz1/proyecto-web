@@ -498,8 +498,11 @@ app.put("/api/incidents/:id", verificarToken, soloAdmin, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body ?? {};
 
-  if (!status) {
-    return res.status(400).json({ message: "El nuevo estado es obligatorio." });
+  const VALID_STATUSES = ["recibido", "en_desarrollo", "resuelto"];
+  if (!status || !VALID_STATUSES.includes(String(status))) {
+    return res.status(400).json({
+      message: `Estado inválido. Valores permitidos: ${VALID_STATUSES.join(", ")}.`,
+    });
   }
 
   try {
