@@ -414,11 +414,27 @@ app.post("/api/assignments", verificarToken, soloAdmin, async (req, res) => {
   }
 });
 
-app.get("/api/incidents", async (_req, res) => {
+app.get("/api/incidents", async (req, res) => {
+  const { status, limit = "50", page = "1" } = req.query;
+
+  const VALID_STATUSES = ["recibido", "en_desarrollo", "resuelto"];
+  if (status && !VALID_STATUSES.includes(String(status))) {
+    return res.status(400).json({ message: "Estado inválido." });
+  }
+
+  const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 50));
+  const pageNum  = Math.max(1, parseInt(String(page), 10) || 1);
+  const offset   = (pageNum - 1) * limitNum;
+
   try {
+    const params = status
+      ? [String(status), limitNum, offset]
+      : [limitNum, offset];
+
     const [rows] = await pool.execute(`
       SELECT
-        i.*,
+        i.id, i.user_id, i.type, i.description, i.lat, i.lng,
+        i.media_url, i.status, i.created_at, i.updated_at,
         u.first_name,
         u.last_name,
         p.first_name  AS patrullero_first_name,
@@ -428,8 +444,10 @@ app.get("/api/incidents", async (_req, res) => {
       LEFT JOIN users u ON i.user_id = u.id
       LEFT JOIN assignments a ON a.incident_id = i.id
       LEFT JOIN users p ON p.id = a.patrullero_id
+      ${status ? "WHERE i.status = ?" : ""}
       ORDER BY i.created_at DESC
-    `);
+      LIMIT ? OFFSET ?
+    `, params);
     res.json(rows);
   } catch (error) {
     console.error("Error obteniendo incidentes:", error);
