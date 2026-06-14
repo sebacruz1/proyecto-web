@@ -21,29 +21,29 @@
 
 ### Públicos
 
-| Método | Ruta             | Descripción                 |
-| ------ | ---------------- | --------------------------- |
-| GET    | `/api/health`    | Estado del servidor y la BD |
-| POST   | `/api/login`     | Iniciar sesión, retorna JWT |
-| POST   | `/api/register`  | Registrar nuevo ciudadano   |
-| GET    | `/api/incidents` | Listar todos los incidentes |
+| Método | Ruta            | Descripción                 |
+| ------ | --------------- | --------------------------- |
+| GET    | `/api/health`   | Estado del servidor y la BD |
+| POST   | `/api/login`    | Iniciar sesión, retorna JWT |
+| POST   | `/api/register` | Registrar nuevo ciudadano   |
 
 ### Protegidos - requieren `Authorization: Bearer <token>`
 
-| Método | Ruta                  | Rol requerido | Descripción                           |
-| ------ | --------------------- | ------------- | ------------------------------------- |
-| GET    | `/api/stats`          | admin         | Estadísticas del dashboard            |
-| GET    | `/api/users`          | admin         | Listar usuarios (filtro por `?role=`) |
-| POST   | `/api/users`          | admin         | Crear usuario                         |
-| GET    | `/api/roles`          | admin         | Listar roles disponibles              |
-| POST   | `/api/assignments`    | admin         | Asignar patrullero a incidente        |
-| PUT    | `/api/incidents/:id`  | admin         | Actualizar estado de incidente        |
-| DELETE | `/api/incidents/:id`  | admin         | Eliminar incidente                    |
-| POST   | `/api/incidents`      | cualquier rol | Reportar nuevo incidente              |
-| GET    | `/api/shifts/active`  | patrullero    | Obtener turno activo                  |
-| POST   | `/api/shifts/start`   | patrullero    | Iniciar turno con ubicación GPS       |
-| POST   | `/api/shifts/:id/end` | patrullero    | Finalizar turno                       |
-| POST   | `/api/shifts/:id/gps` | patrullero    | Registrar punto GPS durante turno     |
+| Método | Ruta                  | Rol requerido | Descripción                                                       |
+| ------ | --------------------- | ------------- | ----------------------------------------------------------------- |
+| GET    | `/api/incidents`      | cualquier rol | Listar incidentes (filtro `?status=`, paginación `?page=&limit=`) |
+| GET    | `/api/stats`          | admin         | Estadísticas del dashboard                                        |
+| GET    | `/api/users`          | admin         | Listar usuarios (filtro por `?role=`)                             |
+| POST   | `/api/users`          | admin         | Crear usuario                                                     |
+| GET    | `/api/roles`          | admin         | Listar roles disponibles                                          |
+| POST   | `/api/assignments`    | admin         | Asignar patrullero a incidente                                    |
+| PUT    | `/api/incidents/:id`  | admin         | Actualizar estado de incidente                                    |
+| DELETE | `/api/incidents/:id`  | admin         | Eliminar incidente                                                |
+| POST   | `/api/incidents`      | cualquier rol | Reportar nuevo incidente                                          |
+| GET    | `/api/shifts/active`  | patrullero    | Obtener turno activo                                              |
+| POST   | `/api/shifts/start`   | patrullero    | Iniciar turno con ubicación GPS                                   |
+| POST   | `/api/shifts/:id/end` | patrullero    | Finalizar turno                                                   |
+| POST   | `/api/shifts/:id/gps` | patrullero    | Registrar punto GPS durante turno                                 |
 
 ---
 
@@ -59,13 +59,21 @@ Requiere tener **Docker**
    cp .env.example .env
    ```
 
-2. Levantar todos los servicios:
+2. Generar el token JWT
+
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+   ```
+
+   Este se debe pegar en el .env
+
+3. Levantar todos los servicios:
 
    ```bash
    docker compose up --build
    ```
 
-3. Abrir en el navegador: `http://localhost:3001`
+4. Abrir en el navegador: `http://localhost:3001`
 
 Para detener y eliminar los contenedores:
 

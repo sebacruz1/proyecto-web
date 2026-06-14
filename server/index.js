@@ -423,7 +423,7 @@ app.post("/api/assignments", verificarToken, soloAdmin, async (req, res) => {
   }
 });
 
-app.get("/api/incidents", async (req, res) => {
+app.get("/api/incidents", verificarToken, async (req, res) => {
   const { status, limit = "50", page = "1" } = req.query;
 
   const VALID_STATUSES = ["recibido", "en_desarrollo", "resuelto"];
