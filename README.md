@@ -51,14 +51,16 @@
 
 ### Producción (Docker)
 
-Requiere tener **Docker** 
+Requiere tener **Docker**
 
 1. Copiar el archivo de variables de entorno y completarlo:
+
    ```bash
    cp .env.example .env
    ```
 
 2. Levantar todos los servicios:
+
    ```bash
    docker compose up --build
    ```
@@ -66,11 +68,13 @@ Requiere tener **Docker**
 3. Abrir en el navegador: `http://localhost:3001`
 
 Para detener y eliminar los contenedores:
+
 ```bash
 docker compose down
 ```
 
 > Si se necesita reiniciar la base de datos desde cero (borra todos los datos):
+>
 > ```bash
 > docker compose down -v
 > ```
@@ -82,21 +86,25 @@ docker compose down
 Requiere tener instalados **Node.js** y **Docker**.
 
 1. Copiar el archivo de variables de entorno y completarlo:
+
    ```bash
    cp .env.example .env
    ```
 
 2. Instalar dependencias:
+
    ```bash
    npm install
    ```
 
 3. Levantar solo la base de datos con Docker:
+
    ```bash
    docker compose up database
    ```
 
 4. En otra terminal, iniciar el servidor de desarrollo:
+
    ```bash
    npm run dev
    ```

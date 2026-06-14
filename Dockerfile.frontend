@@ -1,0 +1,26 @@
+FROM node:22-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+ARG VITE_API_BASE_URL=http://localhost:3001
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+RUN npm run build
+
+FROM node:22-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
+COPY --from=builder /app/dist ./dist/
+
+EXPOSE 80
+
+CMD ["node", "-e", "const e=require('express'),a=e();a.use(e.static('dist'));a.get('/{*splat}',(r,s)=>s.sendFile('index.html',{root:'dist'}));a.listen(80)"]

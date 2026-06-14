@@ -5,8 +5,6 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
@@ -49,7 +47,8 @@ app.use(
 );
 const allowedOrigins = [
   "http://localhost:5173",
-  "http://localhost:3001" 
+  "http://localhost:3001",
+  "http://localhost",
 ];
 
 app.use(cors({
@@ -634,11 +633,6 @@ app.post(
   },
 );
 
-if (process.env.NODE_ENV === "production") {
-  const distPath = join(dirname(fileURLToPath(import.meta.url)), "..", "dist");
-  app.use(express.static(distPath));
-  app.use((_req, res) => res.sendFile(join(distPath, "index.html")));
-}
 
 app.listen(port, () => {
   console.log(`API escuchando en http://localhost:${port}`);
