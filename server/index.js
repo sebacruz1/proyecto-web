@@ -345,7 +345,8 @@ app.get("/api/stats", verificarToken, soloAdmin, async (_req, res) => {
     ] = await Promise.all([
       pool.execute(
         `SELECT COUNT(*) AS casesThisMonth FROM incidents
-         WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())`,
+         WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+           AND created_at <  DATE_FORMAT(CURDATE() + INTERVAL 1 MONTH, '%Y-%m-01')`,
       ),
       pool.execute(
         `SELECT COUNT(*) AS casesResolved FROM incidents WHERE status = 'resuelto'`,
