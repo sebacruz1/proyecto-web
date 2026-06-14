@@ -20,7 +20,9 @@ const conn = await createConnection({ ...DB, multipleStatements: true });
 console.log("Recreando base de datos...");
 await conn.query(`DROP DATABASE IF EXISTS \`${DB_NAME}\``);
 await conn.query(`CREATE DATABASE \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+await conn.query(`CREATE USER IF NOT EXISTS '${DB_USER}'@'%' IDENTIFIED BY '${DB_PASS}'`);
 await conn.query(`GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'%'`);
+await conn.query(`FLUSH PRIVILEGES`);
 await conn.query(`USE \`${DB_NAME}\``);
 
 console.log("Aplicando schema...");
