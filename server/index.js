@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 
 const app = express();
+app.use(express.compression());
 const port = Number(process.env.PORT ?? 3001);
 
 const jwtSecret = process.env.JWT_SECRET;
