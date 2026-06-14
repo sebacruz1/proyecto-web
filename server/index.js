@@ -296,6 +296,50 @@ app.post("/api/users", verificarToken, soloAdmin, async (req, res) => {
   }
 });
 
+app.put("/api/users/:id", verificarToken, soloAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { firstName, lastName, address, phone } = req.body ?? {};
+
+  try {
+    const [result] = await pool.execute(
+      "UPDATE users SET first_name = ?, last_name = ?, address = ?, phone = ? WHERE id = ?",
+      [
+        String(firstName).trim(), 
+        String(lastName).trim(), 
+        String(address).trim(), 
+        phone ? String(phone).trim() : null, 
+        id
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+    res.json({ message: "Usuario actualizado correctamente." });
+  } catch (error) {
+    console.error("Error al actualizar usuario:", error);
+    res.status(500).json({ message: "Error interno del servidor." });
+  }
+});
+
+app.delete("/api/users/:id", verificarToken, soloAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [result] = await pool.execute("DELETE FROM users WHERE id = ?", [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+    res.json({ message: "Usuario eliminado correctamente." });
+  } catch (error) {
+    console.error("Error al eliminar usuario:", error);
+    res.status(500).json({ 
+      message: "No se puede eliminar. Es posible que el usuario tenga incidentes asociados." 
+    });
+  }
+});
+
 function verificarToken(req, res, next) {
   const authHeader = req.headers.authorization;
 
@@ -466,6 +510,19 @@ app.get("/api/incidents", verificarToken, async (req, res) => {
   }
 });
 
+app.get("/api/incidents/my", verificarToken, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      "SELECT * FROM incidents WHERE user_id = ? ORDER BY created_at DESC",
+      [req.user.id]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error("Error obteniendo mis incidentes:", error);
+    res.status(500).json({ message: "Error interno del servidor." });
+  }
+});
+
 app.post("/api/incidents", verificarToken, async (req, res) => {
   const { type, description, lat, lng, media_url } = req.body ?? {};
 
@@ -521,6 +578,11 @@ app.put("/api/incidents/:id", verificarToken, soloAdmin, async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "Incidente no encontrado." });
     }
+
+    await pool.execute(
+      "INSERT INTO incident_timeline (incident_id, description) VALUES (?, ?)",
+      [id, `El estado del incidente fue actualizado a: ${status}`]
+    );
 
     res.json({ message: "Estado del incidente actualizado correctamente." });
   } catch (error) {
