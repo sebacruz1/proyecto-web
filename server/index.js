@@ -423,7 +423,7 @@ app.post("/api/assignments", verificarToken, soloAdmin, async (req, res) => {
   }
 });
 
-app.get("/api/incidents", async (req, res) => {
+app.get("/api/incidents", verificarToken, async (req, res) => {
   const { status, limit = "50", page = "1" } = req.query;
 
   const VALID_STATUSES = ["recibido", "en_desarrollo", "resuelto"];
@@ -475,6 +475,13 @@ app.post("/api/incidents", verificarToken, async (req, res) => {
       .json({ message: "Faltan campos obligatorios para el reporte." });
   }
 
+  if (String(type).length > 100) {
+    return res.status(400).json({ message: "El tipo de incidente no puede superar los 100 caracteres." });
+  }
+  if (String(description).length > 1000) {
+    return res.status(400).json({ message: "La descripción no puede superar los 1000 caracteres." });
+  }
+
   try {
     const [result] = await pool.execute(
       `INSERT INTO incidents (user_id, type, description, lat, lng, media_url)
@@ -498,8 +505,11 @@ app.put("/api/incidents/:id", verificarToken, soloAdmin, async (req, res) => {
   const { id } = req.params;
   const { status } = req.body ?? {};
 
-  if (!status) {
-    return res.status(400).json({ message: "El nuevo estado es obligatorio." });
+  const VALID_STATUSES = ["recibido", "en_desarrollo", "resuelto"];
+  if (!status || !VALID_STATUSES.includes(String(status))) {
+    return res.status(400).json({
+      message: `Estado inválido. Valores permitidos: ${VALID_STATUSES.join(", ")}.`,
+    });
   }
 
   try {
