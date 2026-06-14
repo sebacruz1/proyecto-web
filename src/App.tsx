@@ -1,8 +1,8 @@
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import "./App.css";
 import { ToastProvider } from "./components/ui/ToastProvider";
-import { IoReloadOutline } from "react-icons/io5";
+import { IoReloadOutline, IoWarningOutline } from "react-icons/io5";
 
 /* lazy loading en lugar de descargar todo de una vez, los elementos pesados 
 (como imágenes, vídeos o módulos de código) solo se cargan cuando aparecen en la pantalla*/
@@ -22,6 +22,25 @@ function PageLoader() {
   );
 }
 
+function NotFound() {
+  const navigate = useNavigate();
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4">
+      <IoWarningOutline className="h-16 w-16 text-blue-800" />
+      <h1 className="mt-4 text-6xl font-black text-blue-900">404</h1>
+      <p className="mt-2 text-lg font-semibold text-slate-700">Página no encontrada</p>
+      <p className="mt-1 text-sm text-slate-400">La ruta que buscas no existe.</p>
+      <button
+        type="button"
+        onClick={() => navigate(-1)}
+        className="mt-6 rounded-xl bg-blue-800 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+      >
+        Volver
+      </button>
+    </div>
+  );
+}
+
 function App() {
   return (
     <ToastProvider>
@@ -37,7 +56,7 @@ function App() {
             <Route path="/user/history" element={<UserDashboard />} />
             <Route path="/user/:id" element={<UserDashboard />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<h2>404 - La página no existe</h2>} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
