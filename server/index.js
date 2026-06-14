@@ -29,7 +29,24 @@ const pool = mysql.createPool({
 });
 
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": [
+          "'self'", 
+          "data:", 
+          "https://*.tile.openstreetmap.org", 
+          "https://a.tile.openstreetmap.org", 
+          "https://b.tile.openstreetmap.org", 
+          "https://c.tile.openstreetmap.org", 
+          "https://unpkg.com"
+        ],
+      },
+    },
+  })
+);
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3001" 
