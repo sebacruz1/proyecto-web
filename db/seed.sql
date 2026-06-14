@@ -56,19 +56,19 @@ INSERT INTO gps_tracking (shift_id, lat, lng, recorded_at) VALUES
 
 -- INCIDENTES
 INSERT INTO incidents (id, user_id, type, description, lat, lng, status, created_at) VALUES
--- Resueltos
-(1,  6, 'Accidente Vehicular',  'Choque entre dos vehículos en la intersección con Av. del Mar. Hay daños materiales, sin heridos graves.',                            -33.63800000, -71.63000000, 'resuelto',      '2025-05-20 09:15:00'),
-(2,  7, 'Luminaria Dañada',     'Poste de luz caído en calle Los Pinos esquina Av. Central. Riesgo para peatones y vehículos.',                                        -33.63500000, -71.62800000, 'resuelto',      '2025-05-20 14:30:00'),
-(3,  8, 'Ruido Excesivo',       'Fiesta con música a alto volumen desde las 23:00 hrs en sector Villa Las Palmas. No cesan pese a solicitudes vecinales.',              -33.64300000, -71.62100000, 'resuelto',      '2025-05-21 23:45:00'),
--- En desarrollo
-(4,  6, 'Vehículo Sospechoso',  'Camioneta blanca sin patente visible estacionada frente al colegio municipal hace más de 3 horas con ocupantes en el interior.',      -33.64000000, -71.62000000, 'en_desarrollo', '2025-05-23 10:20:00'),
-(5,  7, 'Persona Sospechosa',   'Individuo merodeando el perímetro de la plaza de armas hace aproximadamente una hora. Actitud evasiva, no reside en el sector.',      -33.63600000, -71.62400000, 'en_desarrollo', '2025-05-23 15:05:00'),
-(6,  8, 'Vandalismo',           'Rayados con aerosol en el muro exterior de la escuela básica N°1. Daños de consideración en fachada recién pintada.',                 -33.63200000, -71.63200000, 'en_desarrollo', '2025-05-24 07:50:00'),
--- Recibidos (pendientes)
-(7,  7, 'Basura Clandestina',   'Microbasural en sitio eriazo de calle El Roble con Av. Marina. Lleva varios días acumulándose sin que nadie lo retire.',              -33.64500000, -71.61700000, 'recibido',      '2025-05-24 11:30:00'),
-(8,  6, 'Accidente Vehicular',  'Motocicleta chocó contra un poste en Av. del Mar. El conductor está consciente pero con heridas leves. Solicitan ambulancia.',        -33.63900000, -71.62900000, 'recibido',      '2025-05-24 13:45:00'),
-(9,  6, 'Luminaria Dañada',     'Tres postes de luz sin funcionar en el pasaje San Pedro entre los números 100 y 200. El sector queda completamente oscuro de noche.',  -33.63100000, -71.63500000, 'recibido',      '2025-05-25 19:00:00'),
-(10, 8, 'Ruido Excesivo',       'Bar de la calle Comercio con música a máximo volumen. Situación se repite cada fin de semana desde medianoche.',                      -33.64600000, -71.62300000, 'recibido',      '2025-05-25 00:30:00');
+-- Resueltos (mes anterior)
+(1,  6, 'Accidente Vehicular',  'Choque entre dos vehículos en la intersección con Av. del Mar. Hay daños materiales, sin heridos graves.',                            -33.63800000, -71.63000000, 'resuelto',      DATE_SUB(CURDATE(), INTERVAL 40 DAY)),
+(2,  7, 'Luminaria Dañada',     'Poste de luz caído en calle Los Pinos esquina Av. Central. Riesgo para peatones y vehículos.',                                        -33.63500000, -71.62800000, 'resuelto',      DATE_SUB(CURDATE(), INTERVAL 38 DAY)),
+(3,  8, 'Ruido Excesivo',       'Fiesta con música a alto volumen desde las 23:00 hrs en sector Villa Las Palmas. No cesan pese a solicitudes vecinales.',              -33.64300000, -71.62100000, 'resuelto',      DATE_SUB(CURDATE(), INTERVAL 35 DAY)),
+-- En desarrollo (este mes)
+(4,  6, 'Vehículo Sospechoso',  'Camioneta blanca sin patente visible estacionada frente al colegio municipal hace más de 3 horas con ocupantes en el interior.',      -33.64000000, -71.62000000, 'en_desarrollo', DATE_SUB(CURDATE(), INTERVAL 10 DAY)),
+(5,  7, 'Persona Sospechosa',   'Individuo merodeando el perímetro de la plaza de armas hace aproximadamente una hora. Actitud evasiva, no reside en el sector.',      -33.63600000, -71.62400000, 'en_desarrollo', DATE_SUB(CURDATE(), INTERVAL 8 DAY)),
+(6,  8, 'Vandalismo',           'Rayados con aerosol en el muro exterior de la escuela básica N°1. Daños de consideración en fachada recién pintada.',                 -33.63200000, -71.63200000, 'en_desarrollo', DATE_SUB(CURDATE(), INTERVAL 6 DAY)),
+-- Recibidos (este mes)
+(7,  7, 'Basura Clandestina',   'Microbasural en sitio eriazo de calle El Roble con Av. Marina. Lleva varios días acumulándose sin que nadie lo retire.',              -33.64500000, -71.61700000, 'recibido',      DATE_SUB(CURDATE(), INTERVAL 4 DAY)),
+(8,  6, 'Accidente Vehicular',  'Motocicleta chocó contra un poste en Av. del Mar. El conductor está consciente pero con heridas leves. Solicitan ambulancia.',        -33.63900000, -71.62900000, 'recibido',      DATE_SUB(CURDATE(), INTERVAL 3 DAY)),
+(9,  6, 'Luminaria Dañada',     'Tres postes de luz sin funcionar en el pasaje San Pedro entre los números 100 y 200. El sector queda completamente oscuro de noche.',  -33.63100000, -71.63500000, 'recibido',      DATE_SUB(CURDATE(), INTERVAL 2 DAY)),
+(10, 8, 'Ruido Excesivo',       'Bar de la calle Comercio con música a máximo volumen. Situación se repite cada fin de semana desde medianoche.',                      -33.64600000, -71.62300000, 'recibido',      DATE_SUB(CURDATE(), INTERVAL 1 DAY));
 
 -- ASIGNACIONES
 INSERT INTO assignments (incident_id, patrullero_id, status, assigned_at, completed_at) VALUES
