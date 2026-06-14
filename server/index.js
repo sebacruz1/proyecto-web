@@ -475,6 +475,13 @@ app.post("/api/incidents", verificarToken, async (req, res) => {
       .json({ message: "Faltan campos obligatorios para el reporte." });
   }
 
+  if (String(type).length > 100) {
+    return res.status(400).json({ message: "El tipo de incidente no puede superar los 100 caracteres." });
+  }
+  if (String(description).length > 1000) {
+    return res.status(400).json({ message: "La descripción no puede superar los 1000 caracteres." });
+  }
+
   try {
     const [result] = await pool.execute(
       `INSERT INTO incidents (user_id, type, description, lat, lng, media_url)
