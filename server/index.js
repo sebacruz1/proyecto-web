@@ -363,25 +363,33 @@ app.get("/api/stats", verificarToken, soloAdmin, async (_req, res) => {
 });
 
 app.get("/api/users", verificarToken, soloAdmin, async (req, res) => {
-  const { role } = req.query;
+  const { role, limit = "50", page = "1" } = req.query;
   const validRoles = ["admin", "user", "patrullero"];
   if (role && !validRoles.includes(String(role))) {
     return res.status(400).json({ message: "Rol inválido." });
   }
+
+  const limitNum = Math.min(50, Math.max(1, parseInt(String(limit), 10) || 50));
+  const pageNum  = Math.max(1, parseInt(String(page), 10) || 1);
+  const offset   = (pageNum - 1) * limitNum;
+
   try {
     const [rows] = role
       ? await pool.execute(
           `SELECT u.id, u.first_name, u.last_name, u.email, u.phone,
                   r.id AS role_id, r.name AS role, r.display_name AS role_display
            FROM users u JOIN roles r ON r.id = u.role_id
-           WHERE r.name = ? ORDER BY u.first_name`,
-          [String(role)],
+           WHERE r.name = ? ORDER BY u.first_name
+           LIMIT ? OFFSET ?`,
+          [String(role), limitNum, offset],
         )
       : await pool.execute(
           `SELECT u.id, u.first_name, u.last_name, u.email, u.phone,
                   r.id AS role_id, r.name AS role, r.display_name AS role_display
            FROM users u JOIN roles r ON r.id = u.role_id
-           ORDER BY r.name, u.first_name`,
+           ORDER BY r.name, u.first_name
+           LIMIT ? OFFSET ?`,
+          [limitNum, offset],
         );
     res.json(rows);
   } catch (error) {
