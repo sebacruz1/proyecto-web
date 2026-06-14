@@ -1,7 +1,7 @@
 import { setAuthUser, type AuthUser } from "@/lib/authUser";
 import Navbar from "@/components/layout/Navbar";
-import RegisterModal from "@/components/ui/RegisterModal";
-import ForgotPasswordModal from "@/components/ui/ForgotPasswordModal";
+import RegisterModal from "./components/RegisterModal";
+import ForgotPasswordModal from "./components/ForgotPasswordModal";
 import { useState } from "react";
 import {
   IoAlertCircleOutline,

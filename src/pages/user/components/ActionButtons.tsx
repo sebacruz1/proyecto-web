@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { FaPlus } from "react-icons/fa";
 import { IoTimeOutline } from "react-icons/io5";
-import ReportIncidentModal from "@/components/ui/ReportIncidentModal";
-import PastIncidentsModal from "@/components/ui/PastIncidentsModal";
+import ReportIncidentModal from "./ReportIncidentModal";
+import PastIncidentsModal from "./PastIncidentsModal";
 
 export default function ActionButtons() {
   const [isReportOpen, setIsReportOpen] = useState(false);
