@@ -7,6 +7,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 
 const app = express();
+app.use(express.compression());
 const port = Number(process.env.PORT ?? 3001);
 
 const jwtSecret = process.env.JWT_SECRET;
@@ -345,7 +346,8 @@ app.get("/api/stats", verificarToken, soloAdmin, async (_req, res) => {
     ] = await Promise.all([
       pool.execute(
         `SELECT COUNT(*) AS casesThisMonth FROM incidents
-         WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())`,
+         WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+           AND created_at <  DATE_FORMAT(CURDATE() + INTERVAL 1 MONTH, '%Y-%m-01')`,
       ),
       pool.execute(
         `SELECT COUNT(*) AS casesResolved FROM incidents WHERE status = 'resuelto'`,
@@ -362,25 +364,33 @@ app.get("/api/stats", verificarToken, soloAdmin, async (_req, res) => {
 });
 
 app.get("/api/users", verificarToken, soloAdmin, async (req, res) => {
-  const { role } = req.query;
+  const { role, limit = "50", page = "1" } = req.query;
   const validRoles = ["admin", "user", "patrullero"];
   if (role && !validRoles.includes(String(role))) {
     return res.status(400).json({ message: "Rol inválido." });
   }
+
+  const limitNum = Math.min(50, Math.max(1, parseInt(String(limit), 10) || 50));
+  const pageNum  = Math.max(1, parseInt(String(page), 10) || 1);
+  const offset   = (pageNum - 1) * limitNum;
+
   try {
     const [rows] = role
       ? await pool.execute(
           `SELECT u.id, u.first_name, u.last_name, u.email, u.phone,
                   r.id AS role_id, r.name AS role, r.display_name AS role_display
            FROM users u JOIN roles r ON r.id = u.role_id
-           WHERE r.name = ? ORDER BY u.first_name`,
-          [String(role)],
+           WHERE r.name = ? ORDER BY u.first_name
+           LIMIT ? OFFSET ?`,
+          [String(role), limitNum, offset],
         )
       : await pool.execute(
           `SELECT u.id, u.first_name, u.last_name, u.email, u.phone,
                   r.id AS role_id, r.name AS role, r.display_name AS role_display
            FROM users u JOIN roles r ON r.id = u.role_id
-           ORDER BY r.name, u.first_name`,
+           ORDER BY r.name, u.first_name
+           LIMIT ? OFFSET ?`,
+          [limitNum, offset],
         );
     res.json(rows);
   } catch (error) {
@@ -413,11 +423,27 @@ app.post("/api/assignments", verificarToken, soloAdmin, async (req, res) => {
   }
 });
 
-app.get("/api/incidents", async (_req, res) => {
+app.get("/api/incidents", async (req, res) => {
+  const { status, limit = "50", page = "1" } = req.query;
+
+  const VALID_STATUSES = ["recibido", "en_desarrollo", "resuelto"];
+  if (status && !VALID_STATUSES.includes(String(status))) {
+    return res.status(400).json({ message: "Estado inválido." });
+  }
+
+  const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 50));
+  const pageNum  = Math.max(1, parseInt(String(page), 10) || 1);
+  const offset   = (pageNum - 1) * limitNum;
+
   try {
+    const params = status
+      ? [String(status), limitNum, offset]
+      : [limitNum, offset];
+
     const [rows] = await pool.execute(`
       SELECT
-        i.*,
+        i.id, i.user_id, i.type, i.description, i.lat, i.lng,
+        i.media_url, i.status, i.created_at, i.updated_at,
         u.first_name,
         u.last_name,
         p.first_name  AS patrullero_first_name,
@@ -427,8 +453,10 @@ app.get("/api/incidents", async (_req, res) => {
       LEFT JOIN users u ON i.user_id = u.id
       LEFT JOIN assignments a ON a.incident_id = i.id
       LEFT JOIN users p ON p.id = a.patrullero_id
+      ${status ? "WHERE i.status = ?" : ""}
       ORDER BY i.created_at DESC
-    `);
+      LIMIT ? OFFSET ?
+    `, params);
     res.json(rows);
   } catch (error) {
     console.error("Error obteniendo incidentes:", error);

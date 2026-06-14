@@ -19,11 +19,13 @@ export default function AssignedIncident() {
   const fetchIncidents = async () => {
     try {
       // Se Hace el GET a nuestra API REST
-      const data = await api.get<Incident[]>("/api/incidents");
-
-      // Filtramos para mostrar en pantalla solo los incidentes que no estén resueltos
-      const activos = data.filter((inc) => inc.status !== "resuelto");
-      setIncidents(activos);
+      const recibidos = await api.get<Incident[]>(
+        "/api/incidents?status=recibido",
+      );
+      const enDesarrollo = await api.get<Incident[]>(
+        "/api/incidents?status=en_desarrollo",
+      );
+      setIncidents([...recibidos, ...enDesarrollo]);
     } catch (error) {
       console.error("Error al cargar incidentes:", error);
       showToast("Error de conexión al cargar los incidentes.", "error");
@@ -74,7 +76,7 @@ export default function AssignedIncident() {
               title={incident.type}
               category={incident.status.replace("_", " ").toUpperCase()}
               priority={getPriority(incident.type)}
-              date={new Date(incident.created_at).toLocaleDateString("es-CL")} 
+              date={new Date(incident.created_at).toLocaleDateString("es-CL")}
               onClick={() => {
                 // Dejamos el clic preparado para el siguiente paso (El Update del CRUD)
                 showToast(
@@ -89,4 +91,3 @@ export default function AssignedIncident() {
     </section>
   );
 }
-

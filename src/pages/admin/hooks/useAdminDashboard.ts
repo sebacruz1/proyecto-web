@@ -61,15 +61,16 @@ export function useAdminDashboard() {
 
     async function fetchData() {
       try {
-        const [statsData, allIncidents, patrolData] = await Promise.all([
+        const [statsData, pendingData, assignedData, patrolData] = await Promise.all([
           api.get<Stats>("/api/stats"),
-          api.get<Incident[]>("/api/incidents"),
+          api.get<Incident[]>("/api/incidents?status=recibido"),
+          api.get<Incident[]>("/api/incidents?status=en_desarrollo"),
           api.get<Patrullero[]>("/api/users?role=patrullero"),
         ]);
 
         setStats(statsData);
-        setPendingIncidents(allIncidents.filter((i) => i.status === "recibido"));
-        setAssignedIncidents(allIncidents.filter((i) => i.status === "en_desarrollo"));
+        setPendingIncidents(pendingData);
+        setAssignedIncidents(assignedData);
         setPatrulleros(patrolData);
       } catch (e) {
         if (!(e instanceof ApiError && e.status === 401)) {
@@ -91,13 +92,14 @@ export function useAdminDashboard() {
 
     Promise.all([
       api.get<Stats>("/api/stats"),
-      api.get<Incident[]>("/api/incidents"),
+      api.get<Incident[]>("/api/incidents?status=recibido"),
+      api.get<Incident[]>("/api/incidents?status=en_desarrollo"),
       api.get<Patrullero[]>("/api/users?role=patrullero"),
     ])
-      .then(([statsData, allIncidents, patrolData]) => {
+      .then(([statsData, pendingData, assignedData, patrolData]) => {
         setStats(statsData);
-        setPendingIncidents(allIncidents.filter((i) => i.status === "recibido"));
-        setAssignedIncidents(allIncidents.filter((i) => i.status === "en_desarrollo"));
+        setPendingIncidents(pendingData);
+        setAssignedIncidents(assignedData);
         setPatrulleros(patrolData);
       })
       .catch((e) => {
