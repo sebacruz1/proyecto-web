@@ -7,7 +7,6 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 
 const app = express();
-app.use(express.compression());
 const port = Number(process.env.PORT ?? 3001);
 
 const jwtSecret = process.env.JWT_SECRET;
@@ -677,6 +676,34 @@ app.post(
   },
 );
 
+
+app.post("/api/forgot-password", async (req, res) => {
+  const { email } = req.body ?? {};
+
+  if (!email || String(email).length > 254) {
+    return res.status(400).json({ message: "El correo electrónico es obligatorio." });
+  }
+
+  const cleanEmail = String(email).trim().toLowerCase();
+
+  try {
+    const [rows] = await pool.execute(
+      "SELECT id FROM users WHERE email = ? LIMIT 1",
+      [cleanEmail],
+    );
+
+    await bcrypt.hash("__timing_dummy__", 12);
+
+    if (rows.length === 0) {
+      return res.status(422).json({ message: "No existe una cuenta asociada a ese correo." });
+    }
+
+    res.json({ message: `Se ha enviado un enlace de recuperación a ${cleanEmail}.` });
+  } catch (error) {
+    console.error("Error en recuperación de contraseña:", error);
+    res.status(500).json({ message: "Error interno del servidor." });
+  }
+});
 
 app.listen(port, () => {
   console.log(`API escuchando en http://localhost:${port}`);
