@@ -338,16 +338,22 @@ app.get("/api/roles", verificarToken, soloAdmin, async (_req, res) => {
 
 app.get("/api/stats", verificarToken, soloAdmin, async (_req, res) => {
   try {
-    const [[{ casesThisMonth }]] = await pool.execute(
-      `SELECT COUNT(*) AS casesThisMonth FROM incidents
-       WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())`,
-    );
-    const [[{ casesResolved }]] = await pool.execute(
-      `SELECT COUNT(*) AS casesResolved FROM incidents WHERE status = 'resuelto'`,
-    );
-    const [byType] = await pool.execute(
-      `SELECT type, COUNT(*) AS total FROM incidents GROUP BY type ORDER BY total DESC`,
-    );
+    const [
+      [[{ casesThisMonth }]],
+      [[{ casesResolved }]],
+      [byType],
+    ] = await Promise.all([
+      pool.execute(
+        `SELECT COUNT(*) AS casesThisMonth FROM incidents
+         WHERE MONTH(created_at) = MONTH(CURDATE()) AND YEAR(created_at) = YEAR(CURDATE())`,
+      ),
+      pool.execute(
+        `SELECT COUNT(*) AS casesResolved FROM incidents WHERE status = 'resuelto'`,
+      ),
+      pool.execute(
+        `SELECT type, COUNT(*) AS total FROM incidents GROUP BY type ORDER BY total DESC`,
+      ),
+    ]);
     res.json({ casesThisMonth, casesResolved, byType });
   } catch (error) {
     console.error("Error obteniendo stats:", error);
