@@ -125,4 +125,4 @@ Requiere tener instalados **Node.js** y **Docker**.
 
 # EF6
 
-El proyecto esta hosteado en AWS, se puede ingresar en: http://18.228.202.160/
+El proyecto esta hosteado en AWS, se puede ingresar en: http://54.233.44.158/
