@@ -28,42 +28,44 @@ const pool = mysql.createPool({
   connectionLimit: 10,
 });
 
-
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
         "img-src": [
-          "'self'", 
-          "data:", 
-          "https://*.tile.openstreetmap.org", 
-          "https://a.tile.openstreetmap.org", 
-          "https://b.tile.openstreetmap.org", 
-          "https://c.tile.openstreetmap.org", 
-          "https://unpkg.com"
+          "'self'",
+          "data:",
+          "https://*.tile.openstreetmap.org",
+          "https://a.tile.openstreetmap.org",
+          "https://b.tile.openstreetmap.org",
+          "https://c.tile.openstreetmap.org",
+          "https://unpkg.com",
         ],
       },
     },
-  })
+  }),
 );
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3001",
   "http://localhost",
+  "http://18.228.202.160",
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("No permitido por CORS. Bloqueado por seguridad."));
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("No permitido por CORS. Bloqueado por seguridad."));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 
@@ -305,12 +307,12 @@ app.put("/api/users/:id", verificarToken, soloAdmin, async (req, res) => {
     const [result] = await pool.execute(
       "UPDATE users SET first_name = ?, last_name = ?, address = ?, phone = ? WHERE id = ?",
       [
-        String(firstName).trim(), 
-        String(lastName).trim(), 
-        String(address).trim(), 
-        phone ? String(phone).trim() : null, 
-        id
-      ]
+        String(firstName).trim(),
+        String(lastName).trim(),
+        String(address).trim(),
+        phone ? String(phone).trim() : null,
+        id,
+      ],
     );
 
     if (result.affectedRows === 0) {
@@ -335,8 +337,9 @@ app.delete("/api/users/:id", verificarToken, soloAdmin, async (req, res) => {
     res.json({ message: "Usuario eliminado correctamente." });
   } catch (error) {
     console.error("Error al eliminar usuario:", error);
-    res.status(500).json({ 
-      message: "No se puede eliminar. Es posible que el usuario tenga incidentes asociados." 
+    res.status(500).json({
+      message:
+        "No se puede eliminar. Es posible que el usuario tenga incidentes asociados.",
     });
   }
 });
@@ -384,23 +387,20 @@ app.get("/api/roles", verificarToken, soloAdmin, async (_req, res) => {
 
 app.get("/api/stats", verificarToken, soloAdmin, async (_req, res) => {
   try {
-    const [
-      [[{ casesThisMonth }]],
-      [[{ casesResolved }]],
-      [byType],
-    ] = await Promise.all([
-      pool.execute(
-        `SELECT COUNT(*) AS casesThisMonth FROM incidents
+    const [[[{ casesThisMonth }]], [[{ casesResolved }]], [byType]] =
+      await Promise.all([
+        pool.execute(
+          `SELECT COUNT(*) AS casesThisMonth FROM incidents
          WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
            AND created_at <  DATE_FORMAT(CURDATE() + INTERVAL 1 MONTH, '%Y-%m-01')`,
-      ),
-      pool.execute(
-        `SELECT COUNT(*) AS casesResolved FROM incidents WHERE status = 'resuelto'`,
-      ),
-      pool.execute(
-        `SELECT type, COUNT(*) AS total FROM incidents GROUP BY type ORDER BY total DESC`,
-      ),
-    ]);
+        ),
+        pool.execute(
+          `SELECT COUNT(*) AS casesResolved FROM incidents WHERE status = 'resuelto'`,
+        ),
+        pool.execute(
+          `SELECT type, COUNT(*) AS total FROM incidents GROUP BY type ORDER BY total DESC`,
+        ),
+      ]);
     res.json({ casesThisMonth, casesResolved, byType });
   } catch (error) {
     console.error("Error obteniendo stats:", error);
@@ -416,8 +416,8 @@ app.get("/api/users", verificarToken, soloAdmin, async (req, res) => {
   }
 
   const limitNum = Math.min(50, Math.max(1, parseInt(String(limit), 10) || 50));
-  const pageNum  = Math.max(1, parseInt(String(page), 10) || 1);
-  const offset   = (pageNum - 1) * limitNum;
+  const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+  const offset = (pageNum - 1) * limitNum;
 
   try {
     const [rows] = role
@@ -475,19 +475,29 @@ app.get("/api/incidents", verificarToken, async (req, res) => {
     return res.status(400).json({ message: "Estado inválido." });
   }
 
-  const limitNum = Math.min(100, Math.max(1, parseInt(String(limit), 10) || 50));
-  const pageNum  = Math.max(1, parseInt(String(page), 10) || 1);
-  const offset   = (pageNum - 1) * limitNum;
+  const limitNum = Math.min(
+    100,
+    Math.max(1, parseInt(String(limit), 10) || 50),
+  );
+  const pageNum = Math.max(1, parseInt(String(page), 10) || 1);
+  const offset = (pageNum - 1) * limitNum;
   const onlyMine = mine === "true";
 
   const conditions = [];
   const params = [];
-  if (status)   { conditions.push("i.status = ?");  params.push(String(status)); }
-  if (onlyMine) { conditions.push("i.user_id = ?"); params.push(req.user.id); }
+  if (status) {
+    conditions.push("i.status = ?");
+    params.push(String(status));
+  }
+  if (onlyMine) {
+    conditions.push("i.user_id = ?");
+    params.push(req.user.id);
+  }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
   try {
-    const [rows] = await pool.execute(`
+    const [rows] = await pool.execute(
+      `
       SELECT
         i.id, i.user_id, i.type, i.description, i.lat, i.lng,
         i.media_url, i.status, i.created_at, i.updated_at,
@@ -503,11 +513,15 @@ app.get("/api/incidents", verificarToken, async (req, res) => {
       ${where}
       ORDER BY i.created_at DESC
       LIMIT ${limitNum} OFFSET ${offset}
-    `, params);
+    `,
+      params,
+    );
     res.json(rows);
   } catch (error) {
     console.error("Error obteniendo incidentes:", error);
-    res.status(500).json({ message: "Error al obtener incidentes de la base de datos." });
+    res
+      .status(500)
+      .json({ message: "Error al obtener incidentes de la base de datos." });
   }
 });
 
@@ -515,7 +529,7 @@ app.get("/api/incidents/my", verificarToken, async (req, res) => {
   try {
     const [rows] = await pool.execute(
       "SELECT * FROM incidents WHERE user_id = ? ORDER BY created_at DESC",
-      [req.user.id]
+      [req.user.id],
     );
     res.json(rows);
   } catch (error) {
@@ -534,10 +548,18 @@ app.post("/api/incidents", verificarToken, async (req, res) => {
   }
 
   if (String(type).length > 100) {
-    return res.status(400).json({ message: "El tipo de incidente no puede superar los 100 caracteres." });
+    return res
+      .status(400)
+      .json({
+        message: "El tipo de incidente no puede superar los 100 caracteres.",
+      });
   }
   if (String(description).length > 1000) {
-    return res.status(400).json({ message: "La descripción no puede superar los 1000 caracteres." });
+    return res
+      .status(400)
+      .json({
+        message: "La descripción no puede superar los 1000 caracteres.",
+      });
   }
 
   try {
@@ -582,7 +604,7 @@ app.put("/api/incidents/:id", verificarToken, soloAdmin, async (req, res) => {
 
     await pool.execute(
       "INSERT INTO incident_timeline (incident_id, description) VALUES (?, ?)",
-      [id, `El estado del incidente fue actualizado a: ${status}`]
+      [id, `El estado del incidente fue actualizado a: ${status}`],
     );
 
     res.json({ message: "Estado del incidente actualizado correctamente." });
@@ -740,12 +762,13 @@ app.post(
   },
 );
 
-
 app.post("/api/forgot-password", async (req, res) => {
   const { email } = req.body ?? {};
 
   if (!email || String(email).length > 254) {
-    return res.status(400).json({ message: "El correo electrónico es obligatorio." });
+    return res
+      .status(400)
+      .json({ message: "El correo electrónico es obligatorio." });
   }
 
   const cleanEmail = String(email).trim().toLowerCase();
@@ -759,10 +782,14 @@ app.post("/api/forgot-password", async (req, res) => {
     await bcrypt.hash("__timing_dummy__", 12);
 
     if (rows.length === 0) {
-      return res.status(422).json({ message: "No existe una cuenta asociada a ese correo." });
+      return res
+        .status(422)
+        .json({ message: "No existe una cuenta asociada a ese correo." });
     }
 
-    res.json({ message: `Se ha enviado un enlace de recuperación a ${cleanEmail}.` });
+    res.json({
+      message: `Se ha enviado un enlace de recuperación a ${cleanEmail}.`,
+    });
   } catch (error) {
     console.error("Error en recuperación de contraseña:", error);
     res.status(500).json({ message: "Error interno del servidor." });
