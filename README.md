@@ -29,21 +29,23 @@
 
 ### Protegidos - requieren `Authorization: Bearer <token>`
 
-| Método | Ruta                  | Rol requerido | Descripción                                                       |
-| ------ | --------------------- | ------------- | ----------------------------------------------------------------- |
-| GET    | `/api/incidents`      | cualquier rol | Listar incidentes (filtro `?status=`, paginación `?page=&limit=`) |
-| GET    | `/api/stats`          | admin         | Estadísticas del dashboard                                        |
-| GET    | `/api/users`          | admin         | Listar usuarios (filtro por `?role=`)                             |
-| POST   | `/api/users`          | admin         | Crear usuario                                                     |
-| GET    | `/api/roles`          | admin         | Listar roles disponibles                                          |
-| POST   | `/api/assignments`    | admin         | Asignar patrullero a incidente                                    |
-| PUT    | `/api/incidents/:id`  | admin         | Actualizar estado de incidente                                    |
-| DELETE | `/api/incidents/:id`  | admin         | Eliminar incidente                                                |
-| POST   | `/api/incidents`      | cualquier rol | Reportar nuevo incidente                                          |
-| GET    | `/api/shifts/active`  | patrullero    | Obtener turno activo                                              |
-| POST   | `/api/shifts/start`   | patrullero    | Iniciar turno con ubicación GPS                                   |
-| POST   | `/api/shifts/:id/end` | patrullero    | Finalizar turno                                                   |
-| POST   | `/api/shifts/:id/gps` | patrullero    | Registrar punto GPS durante turno                                 |
+| Método | Ruta                  | Rol requerido          | Descripción                                                       |
+| ------ | --------------------- | ---------------------- | ----------------------------------------------------------------- |
+| GET    | `/api/incidents`      | cualquier rol          | Listar incidentes (filtro `?status=`, paginación `?page=&limit=`) |
+| GET    | `/api/stats`          | admin                  | Estadísticas del dashboard                                        |
+| GET    | `/api/users`          | admin                  | Listar usuarios (filtro por `?role=`)                             |
+| POST   | `/api/users`          | admin                  | Crear usuario                                                     |
+| PUT    | `/api/users/:id`      | admin / propio usuario | Editar cualquier usuario desde admin o el propio perfil           |
+| PUT    | `/api/profile`        | user / patrullero      | Actualizar el propio perfil                                       |
+| GET    | `/api/roles`          | admin                  | Listar roles disponibles                                          |
+| POST   | `/api/assignments`    | admin                  | Asignar patrullero a incidente                                    |
+| PUT    | `/api/incidents/:id`  | admin                  | Actualizar estado de incidente                                    |
+| DELETE | `/api/incidents/:id`  | admin                  | Eliminar incidente                                                |
+| POST   | `/api/incidents`      | cualquier rol          | Reportar nuevo incidente                                          |
+| GET    | `/api/shifts/active`  | patrullero             | Obtener turno activo                                              |
+| POST   | `/api/shifts/start`   | patrullero             | Iniciar turno con ubicación GPS                                   |
+| POST   | `/api/shifts/:id/end` | patrullero             | Finalizar turno                                                   |
+| POST   | `/api/shifts/:id/gps` | patrullero             | Registrar punto GPS durante turno                                 |
 
 ---
 
@@ -118,3 +120,9 @@ Requiere tener instalados **Node.js** y **Docker**.
    ```
 
 5. Abrir en el navegador: `http://localhost:5173`
+
+---
+
+# EF6
+
+El proyecto esta hosteado en AWS, se puede ingresar en: http://18.228.202.160/
