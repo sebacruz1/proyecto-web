@@ -613,7 +613,10 @@ app.get("/api/incidents", verificarToken, async (req, res) => {
 app.get("/api/incidents/my", verificarToken, async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      "SELECT * FROM incidents WHERE user_id = ? ORDER BY created_at DESC",
+      `SELECT id, user_id, type, description, lat, lng, media_url, status, created_at, updated_at
+       FROM incidents
+       WHERE user_id = ?
+       ORDER BY created_at DESC`,
       [req.user.id],
     );
     res.json(rows);
