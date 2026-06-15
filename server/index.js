@@ -11,6 +11,49 @@ const app = express();
 app.use(compression());
 const port = Number(process.env.PORT ?? 3001);
 
+function parseCsv(value) {
+  return String(value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+const defaultAllowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3001",
+  "http://localhost",
+  "http://18.228.202.160",
+];
+
+const allowedOrigins = new Set([
+  ...defaultAllowedOrigins,
+  ...parseCsv(process.env.CORS_ALLOWED_ORIGINS),
+]);
+
+const allowedHosts = new Set([
+  "localhost",
+  "127.0.0.1",
+  "18.228.202.160",
+  ...parseCsv(process.env.CORS_ALLOWED_HOSTS),
+]);
+
+function isAllowedOrigin(origin) {
+  if (!origin) {
+    return true;
+  }
+
+  if (allowedOrigins.has(origin)) {
+    return true;
+  }
+
+  try {
+    const { hostname } = new URL(origin);
+    return allowedHosts.has(hostname);
+  } catch {
+    return false;
+  }
+}
+
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
   console.error("JWT_SECRET no está configurado.");
@@ -46,23 +89,17 @@ app.use(
     },
   }),
 );
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3001",
-  "http://localhost",
-  "http://18.228.202.160",
-];
-
 app.use(
   cors({
     origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         callback(null, true);
       } else {
         callback(new Error("No permitido por CORS. Bloqueado por seguridad."));
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   }),
 );
