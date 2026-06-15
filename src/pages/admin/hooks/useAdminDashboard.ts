@@ -26,6 +26,17 @@ export type Patrullero = {
   email: string;
 };
 
+export type User = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  address: string;
+  role: string;
+  role_display: string;
+};
+
 export type TypeStat = {
   type: string;
   total: number;
@@ -42,10 +53,15 @@ export function useAdminDashboard() {
   const [user] = useState(() => getAuthUser());
   const { showToast } = useToast();
 
-  const [stats, setStats] = useState<Stats>({ casesThisMonth: 0, casesResolved: 0, byType: [] });
+  const [stats, setStats] = useState<Stats>({
+    casesThisMonth: 0,
+    casesResolved: 0,
+    byType: [],
+  });
   const [pendingIncidents, setPendingIncidents] = useState<Incident[]>([]);
   const [assignedIncidents, setAssignedIncidents] = useState<Incident[]>([]);
   const [patrulleros, setPatrulleros] = useState<Patrullero[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchingRef = useRef(false);
@@ -61,17 +77,20 @@ export function useAdminDashboard() {
 
     async function fetchData() {
       try {
-        const [statsData, pendingData, assignedData, patrolData] = await Promise.all([
-          api.get<Stats>("/api/stats"),
-          api.get<Incident[]>("/api/incidents?status=recibido"),
-          api.get<Incident[]>("/api/incidents?status=en_desarrollo"),
-          api.get<Patrullero[]>("/api/users?role=patrullero"),
-        ]);
+        const [statsData, pendingData, assignedData, patrolData, usersData] =
+          await Promise.all([
+            api.get<Stats>("/api/stats"),
+            api.get<Incident[]>("/api/incidents?status=recibido"),
+            api.get<Incident[]>("/api/incidents?status=en_desarrollo"),
+            api.get<Patrullero[]>("/api/users?role=patrullero"),
+            api.get<User[]>("/api/users"),
+          ]);
 
         setStats(statsData);
         setPendingIncidents(pendingData);
         setAssignedIncidents(assignedData);
         setPatrulleros(patrolData);
+        setUsers(usersData);
       } catch (e) {
         if (!(e instanceof ApiError && e.status === 401)) {
           console.error("Error cargando datos del dashboard:", e);
@@ -88,19 +107,21 @@ export function useAdminDashboard() {
   const refetch = () => {
     if (fetchingRef.current || !user) return;
     fetchingRef.current = true;
-    setLoading(true);
+    const scrollY = window.scrollY;
 
     Promise.all([
       api.get<Stats>("/api/stats"),
       api.get<Incident[]>("/api/incidents?status=recibido"),
       api.get<Incident[]>("/api/incidents?status=en_desarrollo"),
       api.get<Patrullero[]>("/api/users?role=patrullero"),
+      api.get<User[]>("/api/users"),
     ])
-      .then(([statsData, pendingData, assignedData, patrolData]) => {
+      .then(([statsData, pendingData, assignedData, patrolData, usersData]) => {
         setStats(statsData);
         setPendingIncidents(pendingData);
         setAssignedIncidents(assignedData);
         setPatrulleros(patrolData);
+        setUsers(usersData);
       })
       .catch((e) => {
         if (!(e instanceof ApiError && e.status === 401)) {
@@ -108,8 +129,10 @@ export function useAdminDashboard() {
         }
       })
       .finally(() => {
-        setLoading(false);
         fetchingRef.current = false;
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: scrollY, left: 0, behavior: "auto" });
+        });
       });
   };
 
@@ -136,10 +159,15 @@ export function useAdminDashboard() {
       return false;
     }
   };
-  
+
   const deleteIncident = async (incidentId: number) => {
-    if (!window.confirm("¿Estás seguro de eliminar permanentemente este incidente?")) return false;
-    
+    if (
+      !window.confirm(
+        "¿Estás seguro de eliminar permanentemente este incidente?",
+      )
+    )
+      return false;
+
     try {
       await api.delete(`/api/incidents/${incidentId}`);
       showToast("Incidente eliminado del sistema.", "success");
@@ -151,10 +179,64 @@ export function useAdminDashboard() {
     }
   };
 
+  const editUser = async (
+    id: number,
+    data: {
+      firstName: string;
+      lastName: string;
+      address: string;
+      phone: string | null;
+    },
+  ) => {
+    try {
+      await api.put(`/api/users/${id}`, data);
+      showToast("Usuario actualizado correctamente.", "success");
+      refetch();
+      return true;
+    } catch {
+      showToast("Error al actualizar el usuario.", "error");
+      return false;
+    }
+  };
+
+  const deleteUser = async (id: number) => {
+    if (
+      !window.confirm("¿Estás seguro de eliminar este usuario permanentemente?")
+    )
+      return false;
+    try {
+      await api.delete(`/api/users/${id}`);
+      showToast("Usuario eliminado del sistema.", "success");
+      refetch();
+      return true;
+    } catch {
+      showToast(
+        "No se puede eliminar. El usuario puede tener datos asociados.",
+        "error",
+      );
+      return false;
+    }
+  };
+
   const handleLogout = () => {
     clearAuthUser();
     navigate("/login", { replace: true });
   };
 
-  return { user, stats, pendingIncidents, assignedIncidents, patrulleros, loading, assignPatrullero, resolveIncident, deleteIncident, handleLogout };
+  return {
+    user,
+    stats,
+    pendingIncidents,
+    assignedIncidents,
+    patrulleros,
+    users,
+    loading,
+    assignPatrullero,
+    resolveIncident,
+    deleteIncident,
+    editUser,
+    deleteUser,
+    refetch,
+    handleLogout,
+  };
 }

@@ -71,6 +71,7 @@ export default function LoginPage() {
         lastName?: string;
         rut?: string;
         address?: string;
+        phone?: string | null;
         token?: string;
       };
 
@@ -109,6 +110,7 @@ export default function LoginPage() {
           lastName: payload.lastName ?? "",
           rut: payload.rut ?? "No disponible",
           address: payload.address ?? "No disponible",
+          phone: payload.phone ?? null,
           token: payload.token,
         },
         remember,

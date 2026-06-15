@@ -1,4 +1,9 @@
-import { clearAuthUser, getAuthUser } from "@/lib/authUser";
+import {
+  clearAuthUser,
+  getAuthUser,
+  updateAuthUser,
+  type AuthUser,
+} from "@/lib/authUser";
 import { api } from "@/lib/api";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -19,7 +24,7 @@ export type Coords = { lat: number; lng: number };
 
 export function usePatrolDashboard() {
   const navigate = useNavigate();
-  const [user] = useState(() => getAuthUser());
+  const [user, setUser] = useState(() => getAuthUser());
 
   const [shiftId, setShiftId] = useState<number | null>(null);
   const [position, setPosition] = useState<Coords | null>(null);
@@ -123,6 +128,18 @@ export function usePatrolDashboard() {
     navigate("/login", { replace: true });
   };
 
+  const updateProfile = (changes: {
+    firstName: string;
+    lastName: string;
+    address: string;
+    phone: string | null;
+  }) => {
+    if (!user) return;
+    const next: AuthUser = { ...user, ...changes };
+    updateAuthUser(next);
+    setUser(next);
+  };
+
   return {
     user,
     isShiftStarted: shiftId !== null,
@@ -132,5 +149,6 @@ export function usePatrolDashboard() {
     startShift,
     endShift,
     handleLogout,
+    updateProfile,
   };
 }

@@ -3,9 +3,10 @@ import logo from "@/assets/santodomingo.webp";
 type NavbarProps = {
   role?: string;
   onLogout?: () => void;
+  onEditProfile?: () => void;
 };
 
-export default function Navbar({ role, onLogout }: NavbarProps) {
+export default function Navbar({ role, onLogout, onEditProfile }: NavbarProps) {
   return (
     <header className="w-full border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between px-4">
@@ -20,18 +21,32 @@ export default function Navbar({ role, onLogout }: NavbarProps) {
             height="48"
           />
           <div className="leading-none">
-            {/* Ocultamos estos textos a los lectores de pantalla porque el 'alt' del logo ya da el contexto */}
-            <p className="text-base font-semibold text-blue-700 sm:text-lg" aria-hidden="true">
+            <p
+              className="text-base font-semibold text-blue-700 sm:text-lg"
+              aria-hidden="true"
+            >
               Santo Domingo Seguro
             </p>
-            <p className="text-xs uppercase tracking-wide text-slate-400 sm:text-sm" aria-hidden="true">
+            <p
+              className="text-xs uppercase tracking-wide text-slate-400 sm:text-sm"
+              aria-hidden="true"
+            >
               Municipalidad de Santo Domingo
             </p>
           </div>
         </div>
         {role && onLogout ? (
           <div className="flex items-center gap-3">
-            <div 
+            {onEditProfile ? (
+              <button
+                type="button"
+                onClick={onEditProfile}
+                className="h-11 rounded-md border border-blue-200 bg-white px-4 text-sm font-medium text-blue-800 transition hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Editar perfil
+              </button>
+            ) : null}
+            <div
               className="flex h-11 min-w-24 items-center justify-center rounded-md border border-slate-300 bg-slate-100 px-3 text-sm font-semibold text-slate-700"
               aria-label={`Rol actual: ${role}`}
             >
@@ -51,3 +66,4 @@ export default function Navbar({ role, onLogout }: NavbarProps) {
     </header>
   );
 }
+

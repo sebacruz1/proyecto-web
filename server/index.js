@@ -178,6 +178,7 @@ app.post("/api/login", loginRateLimit, async (req, res) => {
       lastName: user.last_name,
       rut: user.rut,
       address: user.address,
+      phone: user.phone,
       token,
       message: "Login correcto.",
     });
@@ -336,17 +337,22 @@ app.post("/api/users", verificarToken, soloAdmin, async (req, res) => {
   }
 });
 
-app.put("/api/users/:id", verificarToken, soloAdmin, async (req, res) => {
+app.put("/api/users/:id", verificarToken, async (req, res) => {
   const { id } = req.params;
   const { firstName, lastName, address, phone } = req.body ?? {};
 
+  if (req.user?.role !== "admin" && String(req.user?.id) !== String(id)) {
+    return res.status(403).json({ message: "No puedes editar este usuario." });
+  }
+
   try {
+    const cleanAddress = String(address ?? "").trim();
     const [result] = await pool.execute(
-      "UPDATE users SET first_name = ?, last_name = ?, address = ?, phone = ? WHERE id = ?",
+      "UPDATE users SET first_name = ?, last_name = ?, address = COALESCE(NULLIF(?, ''), address), phone = ? WHERE id = ?",
       [
         String(firstName).trim(),
         String(lastName).trim(),
-        String(address).trim(),
+        cleanAddress,
         phone ? String(phone).trim() : null,
         id,
       ],
@@ -358,6 +364,48 @@ app.put("/api/users/:id", verificarToken, soloAdmin, async (req, res) => {
     res.json({ message: "Usuario actualizado correctamente." });
   } catch (error) {
     console.error("Error al actualizar usuario:", error);
+    res.status(500).json({ message: "Error interno del servidor." });
+  }
+});
+
+app.put("/api/profile", verificarToken, async (req, res) => {
+  const { firstName, lastName, address, phone } = req.body ?? {};
+
+  if (!req.user?.id) {
+    return res.status(401).json({ message: "Token inválido o expirado." });
+  }
+
+  try {
+    const cleanAddress = String(address ?? "").trim();
+    const [result] = await pool.execute(
+      "UPDATE users SET first_name = ?, last_name = ?, address = COALESCE(NULLIF(?, ''), address), phone = ? WHERE id = ?",
+      [
+        String(firstName).trim(),
+        String(lastName).trim(),
+        cleanAddress,
+        phone ? String(phone).trim() : null,
+        req.user.id,
+      ],
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    const [[updatedUser]] = await pool.execute(
+      `SELECT u.id, u.email, u.first_name, u.last_name, u.rut, u.address, u.phone,
+              r.id AS role_id, r.name AS role, r.display_name AS role_display
+       FROM users u JOIN roles r ON r.id = u.role_id
+       WHERE u.id = ? LIMIT 1`,
+      [req.user.id],
+    );
+
+    res.json({
+      message: "Usuario actualizado correctamente.",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Error al actualizar perfil:", error);
     res.status(500).json({ message: "Error interno del servidor." });
   }
 });
@@ -459,7 +507,7 @@ app.get("/api/users", verificarToken, soloAdmin, async (req, res) => {
   try {
     const [rows] = role
       ? await pool.execute(
-          `SELECT u.id, u.first_name, u.last_name, u.email, u.phone,
+          `SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.address,
                   r.id AS role_id, r.name AS role, r.display_name AS role_display
            FROM users u JOIN roles r ON r.id = u.role_id
            WHERE r.name = ? ORDER BY u.first_name
@@ -467,7 +515,7 @@ app.get("/api/users", verificarToken, soloAdmin, async (req, res) => {
           [String(role)],
         )
       : await pool.execute(
-          `SELECT u.id, u.first_name, u.last_name, u.email, u.phone,
+          `SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.address,
                   r.id AS role_id, r.name AS role, r.display_name AS role_display
            FROM users u JOIN roles r ON r.id = u.role_id
            ORDER BY r.name, u.first_name
@@ -585,18 +633,14 @@ app.post("/api/incidents", verificarToken, async (req, res) => {
   }
 
   if (String(type).length > 100) {
-    return res
-      .status(400)
-      .json({
-        message: "El tipo de incidente no puede superar los 100 caracteres.",
-      });
+    return res.status(400).json({
+      message: "El tipo de incidente no puede superar los 100 caracteres.",
+    });
   }
   if (String(description).length > 1000) {
-    return res
-      .status(400)
-      .json({
-        message: "La descripción no puede superar los 1000 caracteres.",
-      });
+    return res.status(400).json({
+      message: "La descripción no puede superar los 1000 caracteres.",
+    });
   }
 
   try {
