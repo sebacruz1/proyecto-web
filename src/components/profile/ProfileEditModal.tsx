@@ -46,22 +46,37 @@ export default function ProfileEditModal({ user, onClose, onSaved }: Props) {
 
     setLoading(true);
     try {
-      await api.put("/api/profile", {
+      const { user: saved } = await api.put<{
+        message: string;
+        user:
+          | {
+              first_name: string;
+              last_name: string;
+              address: string;
+              phone: string | null;
+            }
+          | undefined;
+      }>("/api/profile", {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         address: address.trim(),
         phone: phone.trim() || null,
       });
+      if (!saved) throw new Error("Respuesta inesperada del servidor.");
       onSaved({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        address: address.trim(),
-        phone: phone.trim() || null,
+        firstName: saved.first_name,
+        lastName: saved.last_name,
+        address: saved.address,
+        phone: saved.phone,
       });
       onClose();
     } catch (e) {
       if (e instanceof ApiError) {
-        setServerError(e.message);
+        if (e.fields && Object.keys(e.fields).length > 0) {
+          setFieldErrors(e.fields);
+        } else {
+          setServerError(e.message);
+        }
       } else {
         setServerError("No se pudo conectar al servidor.");
       }
@@ -78,7 +93,7 @@ export default function ProfileEditModal({ user, onClose, onSaved }: Props) {
     }`;
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/50 px-4">
+    <div className="fixed inset-0 z-2000 flex items-center justify-center bg-slate-900/50 px-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-lg font-semibold text-blue-800">Editar perfil</h3>
@@ -95,7 +110,11 @@ export default function ProfileEditModal({ user, onClose, onSaved }: Props) {
           {user.email} — <span className="capitalize">{user.roleDisplay}</span>
         </p>
 
-        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="flex flex-col gap-3"
+        >
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">
@@ -141,7 +160,8 @@ export default function ProfileEditModal({ user, onClose, onSaved }: Props) {
 
           <div>
             <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">
-              Dirección <span className="normal-case text-slate-400">(opcional)</span>
+              Dirección{" "}
+              <span className="normal-case text-slate-400">(opcional)</span>
             </label>
             <input
               type="text"
@@ -157,15 +177,22 @@ export default function ProfileEditModal({ user, onClose, onSaved }: Props) {
 
           <div>
             <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">
-              Teléfono <span className="normal-case text-slate-400">(opcional)</span>
+              Teléfono{" "}
+              <span className="normal-case text-slate-400">(opcional)</span>
             </label>
             <input
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              onChange={(e) => {
+                setPhone(e.target.value);
+                clearFieldError("phone");
+              }}
+              className={inputClass("phone")}
               placeholder="+56912345678"
             />
+            {fieldErrors.phone && (
+              <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>
+            )}
           </div>
 
           {serverError && (
