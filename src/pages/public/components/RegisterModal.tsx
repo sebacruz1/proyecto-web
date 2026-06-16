@@ -12,6 +12,7 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
   const [lastName, setLastName] = useState("");
   const [rut, setRut] = useState("");
   const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerConfirmPassword, setRegisterConfirmPassword] = useState("");
@@ -74,13 +75,17 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
         rut: cleanRut,
         address: cleanAddress,
         email: cleanEmail,
+        phone: phone.trim() || null,
         password: registerPassword,
       });
       setRegisterSuccess("¡Cuenta creada! Ya puedes iniciar sesión.");
     } catch (e) {
       if (e instanceof ApiError) {
-        if (e.fields) setFieldErrors(e.fields);
-        setServerError(e.message);
+        if (e.fields && Object.keys(e.fields).length > 0) {
+          setFieldErrors(e.fields);
+        } else {
+          setServerError(e.message);
+        }
       } else {
         setServerError("No se pudo conectar al servidor.");
       }
@@ -217,6 +222,31 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
                 <p className="mt-1 text-xs text-red-500">
                   {fieldErrors.address}
                 </p>
+              )}
+            </div>
+
+            <div className="md:col-span-2">
+              <label
+                htmlFor="registerPhone"
+                className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600"
+              >
+                Teléfono{" "}
+                <span className="normal-case text-slate-400">(opcional)</span>
+              </label>
+              <input
+                id="registerPhone"
+                type="tel"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  clearFieldError("phone");
+                }}
+                className={inputClass("phone")}
+                placeholder="+56912345678"
+                autoComplete="tel"
+              />
+              {fieldErrors.phone && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>
               )}
             </div>
 
