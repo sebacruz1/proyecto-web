@@ -104,8 +104,11 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
       onClose();
     } catch (e) {
       if (e instanceof ApiError) {
-        if (e.fields) setFieldErrors(e.fields);
-        setServerError(e.message);
+        if (e.fields && Object.keys(e.fields).length > 0) {
+          setFieldErrors(e.fields);
+        } else {
+          setServerError(e.message);
+        }
       } else {
         setServerError("No se pudo conectar al servidor.");
       }
@@ -242,10 +245,16 @@ export default function CreateUserModal({ isOpen, onClose, onCreated }: Props) {
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  clearFieldError("phone");
+                }}
+                className={inputClass("phone")}
                 placeholder="+56912345678"
               />
+              {fieldErrors.phone && (
+                <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>
+              )}
             </div>
           </div>
 

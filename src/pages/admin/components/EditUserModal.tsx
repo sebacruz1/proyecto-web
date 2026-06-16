@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { IoClose, IoReloadOutline } from "react-icons/io5";
+import { ApiError } from "@/lib/api";
 
 export type UserToEdit = {
   id: number;
@@ -22,7 +23,7 @@ type Props = {
       address: string;
       phone: string | null;
     },
-  ) => Promise<boolean>;
+  ) => Promise<void>;
 };
 
 export default function EditUserModal({ user, onClose, onSave }: Props) {
@@ -59,19 +60,23 @@ export default function EditUserModal({ user, onClose, onSave }: Props) {
 
     setLoading(true);
     try {
-      const updated = await onSave(user.id, {
+      await onSave(user.id, {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         address: address.trim(),
         phone: phone.trim() || null,
       });
-      if (updated) {
-        onClose();
+      onClose();
+    } catch (e) {
+      if (e instanceof ApiError) {
+        if (e.fields && Object.keys(e.fields).length > 0) {
+          setFieldErrors(e.fields);
+        } else {
+          setServerError(e.message);
+        }
       } else {
-        setServerError("No se pudo actualizar el usuario.");
+        setServerError("No se pudo conectar al servidor.");
       }
-    } catch {
-      setServerError("No se pudo conectar al servidor.");
     } finally {
       setLoading(false);
     }
@@ -88,7 +93,9 @@ export default function EditUserModal({ user, onClose, onSave }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4">
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-lg font-semibold text-blue-800">Editar usuario</h3>
+          <h3 className="text-lg font-semibold text-blue-800">
+            Editar usuario
+          </h3>
           <button
             type="button"
             onClick={onClose}
@@ -102,10 +109,16 @@ export default function EditUserModal({ user, onClose, onSave }: Props) {
           {user.email} — <span className="capitalize">{user.role}</span>
         </p>
 
-        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="flex flex-col gap-3"
+        >
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">Nombre</label>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">
+                Nombre
+              </label>
               <input
                 type="text"
                 value={firstName}
@@ -116,10 +129,16 @@ export default function EditUserModal({ user, onClose, onSave }: Props) {
                 className={inputClass("firstName")}
                 placeholder="Juan"
               />
-              {fieldErrors.firstName && <p className="mt-1 text-xs text-red-500">{fieldErrors.firstName}</p>}
+              {fieldErrors.firstName && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.firstName}
+                </p>
+              )}
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">Apellido</label>
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">
+                Apellido
+              </label>
               <input
                 type="text"
                 value={lastName}
@@ -130,13 +149,18 @@ export default function EditUserModal({ user, onClose, onSave }: Props) {
                 className={inputClass("lastName")}
                 placeholder="Pérez"
               />
-              {fieldErrors.lastName && <p className="mt-1 text-xs text-red-500">{fieldErrors.lastName}</p>}
+              {fieldErrors.lastName && (
+                <p className="mt-1 text-xs text-red-500">
+                  {fieldErrors.lastName}
+                </p>
+              )}
             </div>
           </div>
 
           <div>
             <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">
-              Dirección <span className="normal-case text-slate-400">(opcional)</span>
+              Dirección{" "}
+              <span className="normal-case text-slate-400">(opcional)</span>
             </label>
             <input
               type="text"
@@ -148,20 +172,29 @@ export default function EditUserModal({ user, onClose, onSave }: Props) {
               className={inputClass("address")}
               placeholder="Av. Principal 123"
             />
-            {fieldErrors.address && <p className="mt-1 text-xs text-red-500">{fieldErrors.address}</p>}
+            {fieldErrors.address && (
+              <p className="mt-1 text-xs text-red-500">{fieldErrors.address}</p>
+            )}
           </div>
 
           <div>
             <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-600">
-              Teléfono <span className="normal-case text-slate-400">(opcional)</span>
+              Teléfono{" "}
+              <span className="normal-case text-slate-400">(opcional)</span>
             </label>
             <input
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-300 px-4 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              onChange={(e) => {
+                setPhone(e.target.value);
+                clearFieldError("phone");
+              }}
+              className={inputClass("phone")}
               placeholder="+56912345678"
             />
+            {fieldErrors.phone && (
+              <p className="mt-1 text-xs text-red-500">{fieldErrors.phone}</p>
+            )}
           </div>
 
           {serverError && (
@@ -184,8 +217,13 @@ export default function EditUserModal({ user, onClose, onSave }: Props) {
               className="h-11 flex-1 rounded-xl bg-blue-800 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {loading ? (
-                <><IoReloadOutline className="h-4 w-4 animate-spin" />Guardando...</>
-              ) : "Guardar cambios"}
+                <>
+                  <IoReloadOutline className="h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar cambios"
+              )}
             </button>
           </div>
         </form>

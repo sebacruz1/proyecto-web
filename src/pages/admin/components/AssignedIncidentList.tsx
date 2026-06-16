@@ -36,7 +36,9 @@ function AssignedCard({
             <span className="rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 uppercase">
               {incident.type.replace(/_/g, " ")}
             </span>
-            <span className="text-[10px] font-semibold text-slate-400">#{incident.id}</span>
+            <span className="text-[10px] font-semibold text-slate-400">
+              #{incident.id}
+            </span>
             <span className="text-[10px] text-slate-400">{date}</span>
           </div>
           <p className="text-sm font-semibold text-slate-800 line-clamp-2">
@@ -59,9 +61,19 @@ function AssignedCard({
       </div>
       <div className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2">
         <span className="text-xs text-slate-500">Patrullero:</span>
-        <span className="text-xs font-semibold text-slate-700">{patrullero}</span>
+        <span className="text-xs font-semibold text-slate-700">
+          {patrullero}
+        </span>
         {incident.assignment_status && (
-          <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 uppercase">
+          <span
+            className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+              incident.assignment_status === "completado"
+                ? "bg-emerald-100 text-emerald-700"
+                : incident.assignment_status === "en_camino"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-amber-100 text-amber-700"
+            }`}
+          >
             {incident.assignment_status.replace(/_/g, " ")}
           </span>
         )}
@@ -70,27 +82,61 @@ function AssignedCard({
   );
 }
 
-export default function AssignedIncidentList({ incidents, loading, onResolve }: Props) {
-  return (
-    <section className="mt-2 flex flex-col gap-4">
-      <div>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">
-          Incidentes en desarrollo ({incidents.length})
-        </h2>
-        <hr className="mt-2 border-slate-300" />
-      </div>
+export default function AssignedIncidentList({
+  incidents,
+  loading,
+  onResolve,
+}: Props) {
+  const active = incidents.filter((i) => i.assignment_status !== "completado");
+  const completed = incidents.filter(
+    (i) => i.assignment_status === "completado",
+  );
 
-      {loading ? (
-        <p className="py-6 text-center text-sm text-slate-400">Cargando...</p>
-      ) : incidents.length === 0 ? (
-        <p className="py-6 text-center text-sm text-slate-400">
-          No hay incidentes en desarrollo.
-        </p>
-      ) : (
-        incidents.map((incident) => (
-          <AssignedCard key={incident.id} incident={incident} onResolve={onResolve} />
-        ))
+  return (
+    <div className="mt-2 flex flex-col gap-8">
+      {/* En desarrollo */}
+      <section className="flex flex-col gap-4">
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">
+            Incidentes en desarrollo ({loading ? "..." : active.length})
+          </h2>
+          <hr className="mt-2 border-slate-300" />
+        </div>
+        {loading ? (
+          <p className="py-6 text-center text-sm text-slate-400">Cargando...</p>
+        ) : active.length === 0 ? (
+          <p className="py-6 text-center text-sm text-slate-400">
+            No hay incidentes en desarrollo.
+          </p>
+        ) : (
+          active.map((incident) => (
+            <AssignedCard
+              key={incident.id}
+              incident={incident}
+              onResolve={onResolve}
+            />
+          ))
+        )}
+      </section>
+
+      {/* Completados por patrullero */}
+      {!loading && completed.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">
+              Completados por patrullero ({completed.length})
+            </h2>
+            <hr className="mt-2 border-emerald-300" />
+          </div>
+          {completed.map((incident) => (
+            <AssignedCard
+              key={incident.id}
+              incident={incident}
+              onResolve={onResolve}
+            />
+          ))}
+        </section>
       )}
-    </section>
+    </div>
   );
 }

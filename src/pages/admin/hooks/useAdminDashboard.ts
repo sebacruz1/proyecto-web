@@ -188,15 +188,9 @@ export function useAdminDashboard() {
       phone: string | null;
     },
   ) => {
-    try {
-      await api.put(`/api/users/${id}`, data);
-      showToast("Usuario actualizado correctamente.", "success");
-      refetch();
-      return true;
-    } catch {
-      showToast("Error al actualizar el usuario.", "error");
-      return false;
-    }
+    await api.put(`/api/users/${id}`, data);
+    showToast("Usuario actualizado correctamente.", "success");
+    refetch();
   };
 
   const deleteUser = async (id: number) => {
