@@ -98,7 +98,7 @@ app.use(
         callback(new Error("No permitido por CORS. Bloqueado por seguridad."));
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   }),
@@ -116,8 +116,40 @@ const loginRateLimit = rateLimit({
 
 const DUMMY_HASH = await bcrypt.hash("__dummy__", 12);
 
-const [rolesRows] = await pool.execute("SELECT name FROM roles");
+const [rolesRows] = await pool.execute("SELECT id, name FROM roles");
 const VALID_ROLES = new Set(rolesRows.map((r) => r.name));
+const ROLES_MAP = new Map(rolesRows.map((r) => [r.name, r.id]));
+
+function validateCoreUserFields({
+  firstName,
+  lastName,
+  rut,
+  address,
+  email,
+  password,
+  phone,
+}) {
+  const errors = {};
+  if (!firstName || !String(firstName).trim())
+    errors.firstName = "El nombre es obligatorio.";
+  if (!lastName || !String(lastName).trim())
+    errors.lastName = "El apellido es obligatorio.";
+  if (!rut || !String(rut).trim()) errors.rut = "El RUT es obligatorio.";
+  if (!address || !String(address).trim())
+    errors.address = "La dirección es obligatoria.";
+  if (!email || !String(email).trim())
+    errors.email = "El correo electrónico es obligatorio.";
+  else if (String(email).length > 254)
+    errors.email = "El correo es demasiado largo.";
+  if (!password) errors.password = "La contraseña es obligatoria.";
+  else if (String(password).length < 6)
+    errors.password = "Mínimo 6 caracteres.";
+  else if (String(password).length > 72)
+    errors.password = "La contraseña es demasiado larga.";
+  if (phone && String(phone).trim().length > 20)
+    errors.phone = "El teléfono no puede superar los 20 caracteres.";
+  return errors;
+}
 
 app.get("/api/health", async (_req, res) => {
   try {
@@ -145,7 +177,7 @@ app.post("/api/login", loginRateLimit, async (req, res) => {
 
   try {
     const [rows] = await pool.execute(
-      `SELECT u.id, u.email, u.password, u.first_name, u.last_name, u.rut, u.address,
+      `SELECT u.id, u.email, u.password, u.first_name, u.last_name, u.rut, u.address, u.phone,
               r.id AS role_id, r.name AS role, r.display_name AS role_display
        FROM users u JOIN roles r ON r.id = u.role_id
        WHERE u.email = ? LIMIT 1`,
@@ -199,26 +231,18 @@ const registerRateLimit = rateLimit({
 });
 
 app.post("/api/register", registerRateLimit, async (req, res) => {
-  const { firstName, lastName, rut, address, email, password } = req.body ?? {};
+  const { firstName, lastName, rut, address, email, phone, password } =
+    req.body ?? {};
 
-  const fieldErrors = {};
-  if (!firstName || !String(firstName).trim())
-    fieldErrors.firstName = "El nombre es obligatorio.";
-  if (!lastName || !String(lastName).trim())
-    fieldErrors.lastName = "El apellido es obligatorio.";
-  if (!rut || !String(rut).trim()) fieldErrors.rut = "El RUT es obligatorio.";
-  if (!address || !String(address).trim())
-    fieldErrors.address = "La dirección es obligatoria.";
-  if (!email || !String(email).trim())
-    fieldErrors.email = "El correo electrónico es obligatorio.";
-  else if (String(email).length > 254)
-    fieldErrors.email = "El correo es demasiado largo.";
-  if (!password) fieldErrors.password = "La contraseña es obligatoria.";
-  else if (String(password).length < 6)
-    fieldErrors.password = "Mínimo 6 caracteres.";
-  else if (String(password).length > 72)
-    fieldErrors.password = "La contraseña es demasiado larga.";
-
+  const fieldErrors = validateCoreUserFields({
+    firstName,
+    lastName,
+    rut,
+    address,
+    email,
+    password,
+    phone,
+  });
   if (Object.keys(fieldErrors).length > 0) {
     return res.status(400).json({
       message: "Hay campos obligatorios sin completar.",
@@ -241,14 +265,16 @@ app.post("/api/register", registerRateLimit, async (req, res) => {
     const hashedPassword = await bcrypt.hash(String(password), 12);
 
     await pool.execute(
-      "INSERT INTO users (first_name, last_name, rut, address, email, password, role_id) VALUES (?, ?, ?, ?, ?, ?, 3)",
+      "INSERT INTO users (first_name, last_name, rut, address, email, phone, password, role_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [
         String(firstName).trim(),
         String(lastName).trim(),
         String(rut).trim(),
         String(address).trim(),
         cleanEmail,
+        phone ? String(phone).trim() : null,
         hashedPassword,
+        ROLES_MAP.get("user"),
       ],
     );
 
@@ -263,24 +289,15 @@ app.post("/api/users", verificarToken, soloAdmin, async (req, res) => {
   const { firstName, lastName, rut, address, email, phone, password, role } =
     req.body ?? {};
 
-  const fieldErrors = {};
-  if (!firstName || !String(firstName).trim())
-    fieldErrors.firstName = "El nombre es obligatorio.";
-  if (!lastName || !String(lastName).trim())
-    fieldErrors.lastName = "El apellido es obligatorio.";
-  if (!rut || !String(rut).trim()) fieldErrors.rut = "El RUT es obligatorio.";
-  if (!address || !String(address).trim())
-    fieldErrors.address = "La dirección es obligatoria.";
-  if (!email || !String(email).trim())
-    fieldErrors.email = "El correo electrónico es obligatorio.";
-  else if (String(email).length > 254)
-    fieldErrors.email = "El correo es demasiado largo.";
-  if (!password) fieldErrors.password = "La contraseña es obligatoria.";
-  else if (String(password).length < 6)
-    fieldErrors.password = "Mínimo 6 caracteres.";
-  else if (String(password).length > 72)
-    fieldErrors.password = "La contraseña es demasiado larga.";
-
+  const fieldErrors = validateCoreUserFields({
+    firstName,
+    lastName,
+    rut,
+    address,
+    email,
+    password,
+    phone,
+  });
   if (Object.keys(fieldErrors).length > 0) {
     return res.status(400).json({
       message: "Hay campos obligatorios sin completar.",
@@ -306,11 +323,6 @@ app.post("/api/users", verificarToken, soloAdmin, async (req, res) => {
         .json({ message: "El correo o RUT ya está registrado." });
     }
 
-    const [[roleRow]] = await pool.execute(
-      "SELECT id FROM roles WHERE name = ? LIMIT 1",
-      [role],
-    );
-
     const hashedPassword = await bcrypt.hash(String(password), 12);
 
     const [result] = await pool.execute(
@@ -323,7 +335,7 @@ app.post("/api/users", verificarToken, soloAdmin, async (req, res) => {
         cleanEmail,
         phone ? String(phone).trim() : null,
         hashedPassword,
-        roleRow.id,
+        ROLES_MAP.get(role),
       ],
     );
 
@@ -343,6 +355,19 @@ app.put("/api/users/:id", verificarToken, async (req, res) => {
 
   if (req.user?.role !== "admin" && String(req.user?.id) !== String(id)) {
     return res.status(403).json({ message: "No puedes editar este usuario." });
+  }
+
+  const fieldErrors = {};
+  if (!firstName || !String(firstName).trim())
+    fieldErrors.firstName = "El nombre es obligatorio.";
+  if (!lastName || !String(lastName).trim())
+    fieldErrors.lastName = "El apellido es obligatorio.";
+  if (phone && String(phone).trim().length > 20)
+    fieldErrors.phone = "El teléfono no puede superar los 20 caracteres.";
+  if (Object.keys(fieldErrors).length > 0) {
+    return res
+      .status(400)
+      .json({ message: "Hay campos con errores.", fields: fieldErrors });
   }
 
   try {
@@ -373,6 +398,19 @@ app.put("/api/profile", verificarToken, async (req, res) => {
 
   if (!req.user?.id) {
     return res.status(401).json({ message: "Token inválido o expirado." });
+  }
+
+  const fieldErrors = {};
+  if (!firstName || !String(firstName).trim())
+    fieldErrors.firstName = "El nombre es obligatorio.";
+  if (!lastName || !String(lastName).trim())
+    fieldErrors.lastName = "El apellido es obligatorio.";
+  if (phone && String(phone).trim().length > 20)
+    fieldErrors.phone = "El teléfono no puede superar los 20 caracteres.";
+  if (Object.keys(fieldErrors).length > 0) {
+    return res
+      .status(400)
+      .json({ message: "Hay campos con errores.", fields: fieldErrors });
   }
 
   try {
@@ -495,8 +533,7 @@ app.get("/api/stats", verificarToken, soloAdmin, async (_req, res) => {
 
 app.get("/api/users", verificarToken, soloAdmin, async (req, res) => {
   const { role, limit = "50", page = "1" } = req.query;
-  const validRoles = ["admin", "user", "patrullero"];
-  if (role && !validRoles.includes(String(role))) {
+  if (role && !VALID_ROLES.has(String(role))) {
     return res.status(400).json({ message: "Rol inválido." });
   }
 
@@ -535,20 +572,38 @@ app.post("/api/assignments", verificarToken, soloAdmin, async (req, res) => {
       .status(400)
       .json({ message: "incidentId y patrulleroId son obligatorios." });
   }
+  let conn;
   try {
-    await pool.execute(
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    await conn.execute(
       `INSERT INTO assignments (incident_id, patrullero_id, status) VALUES (?, ?, 'asignado')
        ON DUPLICATE KEY UPDATE status = 'asignado', assigned_at = CURRENT_TIMESTAMP`,
       [incidentId, patrulleroId],
     );
-    await pool.execute(
+    const [statusResult] = await conn.execute(
       "UPDATE incidents SET status = 'en_desarrollo' WHERE id = ? AND status = 'recibido'",
       [incidentId],
     );
+    if (statusResult.affectedRows > 0) {
+      await conn.execute(
+        "INSERT INTO incident_timeline (incident_id, status, details, changed_by) VALUES (?, ?, ?, ?)",
+        [
+          incidentId,
+          "en_desarrollo",
+          "Patrullero asignado al incidente.",
+          req.user.id,
+        ],
+      );
+    }
+    await conn.commit();
     res.status(201).json({ message: "Patrullero asignado correctamente." });
   } catch (error) {
+    if (conn) await conn.rollback().catch(() => {});
     console.error("Error al asignar:", error);
     res.status(500).json({ message: "Error al crear la asignación." });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
@@ -593,7 +648,9 @@ app.get("/api/incidents", verificarToken, async (req, res) => {
         a.status      AS assignment_status
       FROM incidents i
       LEFT JOIN users u ON i.user_id = u.id
-      LEFT JOIN assignments a ON a.incident_id = i.id
+      LEFT JOIN assignments a ON a.id = (
+        SELECT id FROM assignments WHERE incident_id = i.id ORDER BY id DESC LIMIT 1
+      )
       LEFT JOIN users p ON p.id = a.patrullero_id
       ${where}
       ORDER BY i.created_at DESC
@@ -626,6 +683,28 @@ app.get("/api/incidents/my", verificarToken, async (req, res) => {
   }
 });
 
+app.get(
+  "/api/incidents/assigned",
+  verificarToken,
+  soloPatrullero,
+  async (req, res) => {
+    try {
+      const [rows] = await pool.execute(
+        `SELECT i.id, i.type, i.description, i.status, i.lat, i.lng, i.created_at,
+              a.status AS assignment_status
+       FROM incidents i
+       INNER JOIN assignments a ON a.incident_id = i.id AND a.patrullero_id = ?
+       ORDER BY i.created_at DESC`,
+        [req.user.id],
+      );
+      res.json(rows);
+    } catch (error) {
+      console.error("Error obteniendo incidentes asignados:", error);
+      res.status(500).json({ message: "Error interno del servidor." });
+    }
+  },
+);
+
 app.post("/api/incidents", verificarToken, async (req, res) => {
   const { type, description, lat, lng, media_url } = req.body ?? {};
 
@@ -646,27 +725,48 @@ app.post("/api/incidents", verificarToken, async (req, res) => {
     });
   }
 
+  let conn;
   try {
-    const [result] = await pool.execute(
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    const [result] = await conn.execute(
       `INSERT INTO incidents (user_id, type, description, lat, lng, media_url)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [req.user.id, type, description, lat, lng, media_url ?? null],
     );
 
+    await conn.execute(
+      "INSERT INTO incident_timeline (incident_id, status, details, changed_by) VALUES (?, ?, ?, ?)",
+      [
+        result.insertId,
+        "recibido",
+        "Incidente reportado por el ciudadano.",
+        req.user.id,
+      ],
+    );
+
+    await conn.commit();
     res.status(201).json({
       message: "Incidente reportado con éxito.",
       incidentId: result.insertId,
     });
   } catch (error) {
+    if (conn) await conn.rollback().catch(() => {});
     console.error("Error al crear incidente:", error);
     res
       .status(500)
       .json({ message: "Error interno del servidor al crear el incidente." });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
 app.put("/api/incidents/:id", verificarToken, soloAdmin, async (req, res) => {
-  const { id } = req.params;
+  const numericId = Number.parseInt(req.params.id, 10);
+  if (Number.isNaN(numericId)) {
+    return res.status(400).json({ message: "ID de incidente inválido." });
+  }
   const { status } = req.body ?? {};
 
   const VALID_STATUSES = ["recibido", "en_desarrollo", "resuelto"];
@@ -676,25 +776,39 @@ app.put("/api/incidents/:id", verificarToken, soloAdmin, async (req, res) => {
     });
   }
 
+  let conn;
   try {
-    const [result] = await pool.execute(
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    const [result] = await conn.execute(
       "UPDATE incidents SET status = ? WHERE id = ?",
-      [status, id],
+      [status, numericId],
     );
 
     if (result.affectedRows === 0) {
+      await conn.rollback();
       return res.status(404).json({ message: "Incidente no encontrado." });
     }
 
-    await pool.execute(
-      "INSERT INTO incident_timeline (incident_id, description) VALUES (?, ?)",
-      [id, `El estado del incidente fue actualizado a: ${status}`],
+    await conn.execute(
+      "INSERT INTO incident_timeline (incident_id, status, details, changed_by) VALUES (?, ?, ?, ?)",
+      [
+        numericId,
+        status,
+        `El estado del incidente fue actualizado a: ${status}`,
+        req.user.id,
+      ],
     );
 
+    await conn.commit();
     res.json({ message: "Estado del incidente actualizado correctamente." });
   } catch (error) {
+    if (conn) await conn.rollback().catch(() => {});
     console.error("Error al actualizar incidente:", error);
     res.status(500).json({ message: "Error interno del servidor." });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
@@ -703,12 +817,15 @@ app.delete(
   verificarToken,
   soloAdmin,
   async (req, res) => {
-    const { id } = req.params;
+    const numericId = Number.parseInt(req.params.id, 10);
+    if (Number.isNaN(numericId)) {
+      return res.status(400).json({ message: "ID de incidente inválido." });
+    }
 
     try {
       const [result] = await pool.execute(
         "DELETE FROM incidents WHERE id = ?",
-        [id],
+        [numericId],
       );
 
       if (result.affectedRows === 0) {
@@ -718,6 +835,40 @@ app.delete(
       res.json({ message: "Incidente eliminado correctamente." });
     } catch (error) {
       console.error("Error al eliminar incidente:", error);
+      res.status(500).json({ message: "Error interno del servidor." });
+    }
+  },
+);
+
+app.patch(
+  "/api/assignments/:incidentId",
+  verificarToken,
+  soloPatrullero,
+  async (req, res) => {
+    const numericId = Number.parseInt(req.params.incidentId, 10);
+    if (Number.isNaN(numericId)) {
+      return res.status(400).json({ message: "ID de incidente inválido." });
+    }
+
+    const { status } = req.body ?? {};
+    const VALID_STATUSES = ["en_camino", "completado"];
+    if (!VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ message: "Estado inválido." });
+    }
+
+    try {
+      const [result] = await pool.execute(
+        "UPDATE assignments SET status = ? WHERE incident_id = ? AND patrullero_id = ?",
+        [status, numericId, req.user.id],
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Asignación no encontrada." });
+      }
+
+      res.json({ message: "Estado actualizado correctamente." });
+    } catch (error) {
+      console.error("Error al actualizar asignación:", error);
       res.status(500).json({ message: "Error interno del servidor." });
     }
   },
