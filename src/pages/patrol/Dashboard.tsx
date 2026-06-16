@@ -1,5 +1,8 @@
 import Navbar from "@/components/layout/Navbar";
 import AssignedIncidentList from "./components/AssignedIncident";
+import IncidentDetailModal, {
+  type AssignedIncident,
+} from "./components/IncidentDetailModal";
 import IncidentMap from "./components/IncidentMap";
 import ShiftPanel from "./components/ShiftPanel";
 import { usePatrolDashboard } from "./hooks/usePatrolDashboard";
@@ -20,6 +23,9 @@ export default function Dashboard() {
     updateProfile,
   } = usePatrolDashboard();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [selectedIncident, setSelectedIncident] =
+    useState<AssignedIncident | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { showToast } = useToast();
 
   return (
@@ -38,7 +44,18 @@ export default function Dashboard() {
           onEnd={endShift}
         />
         <IncidentMap position={position} />
-        <AssignedIncidentList />
+        {isShiftStarted ? (
+          <AssignedIncidentList
+            onSelect={setSelectedIncident}
+            refreshKey={refreshKey}
+          />
+        ) : (
+          <div className="rounded-2xl border border-slate-200 bg-white px-6 py-10 text-center shadow-sm">
+            <p className="text-sm font-medium text-slate-500">
+              Inicia tu turno para ver los incidentes asignados.
+            </p>
+          </div>
+        )}
       </main>
       {isProfileOpen && user ? (
         <ProfileEditModal
@@ -47,6 +64,16 @@ export default function Dashboard() {
           onSaved={(changes) => {
             updateProfile(changes);
             showToast("Perfil actualizado correctamente.", "success");
+          }}
+        />
+      ) : null}
+      {selectedIncident ? (
+        <IncidentDetailModal
+          incident={selectedIncident}
+          onClose={() => setSelectedIncident(null)}
+          onUpdated={() => {
+            setSelectedIncident(null);
+            setRefreshKey((k) => k + 1);
           }}
         />
       ) : null}

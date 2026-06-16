@@ -47,6 +47,11 @@ export function usePatrolDashboard() {
         if (data?.id) {
           setShiftId(data.id);
           startGpsInterval(data.id);
+          getCurrentPosition()
+            .then((coords) =>
+              setPosition({ lat: coords.latitude, lng: coords.longitude }),
+            )
+            .catch(() => {});
         }
       })
       .catch(() => {});

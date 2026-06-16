@@ -11,6 +11,7 @@ type Incident = {
   type: string;
   description: string;
   status: "recibido" | "en_desarrollo" | "resuelto";
+  assignment_status: "asignado" | "en_camino" | "completado" | null;
   created_at: string;
 };
 
@@ -24,6 +25,24 @@ const STATUS_CLASS: Record<Incident["status"], string> = {
   recibido: "bg-yellow-100 text-yellow-700",
   en_desarrollo: "bg-blue-100 text-blue-700",
   resuelto: "bg-emerald-100 text-emerald-700",
+};
+
+const ASSIGNMENT_LABEL: Record<
+  NonNullable<Incident["assignment_status"]>,
+  string
+> = {
+  asignado: "Patrullero asignado",
+  en_camino: "Patrullero en camino",
+  completado: "Atendido",
+};
+
+const ASSIGNMENT_CLASS: Record<
+  NonNullable<Incident["assignment_status"]>,
+  string
+> = {
+  asignado: "bg-slate-100 text-slate-600",
+  en_camino: "bg-blue-50 text-blue-700",
+  completado: "bg-emerald-50 text-emerald-700",
 };
 
 type Props = {
@@ -125,9 +144,18 @@ function PastIncidentsContent({ onClose }: { onClose: () => void }) {
                   <p className="mt-1.5 line-clamp-2 text-sm text-slate-500">
                     {inc.description}
                   </p>
-                  <p className="mt-2 text-xs text-slate-400">
-                    {formatDate(inc.created_at)}
-                  </p>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="text-xs text-slate-400">
+                      {formatDate(inc.created_at)}
+                    </p>
+                    {inc.assignment_status && (
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${ASSIGNMENT_CLASS[inc.assignment_status]}`}
+                      >
+                        {ASSIGNMENT_LABEL[inc.assignment_status]}
+                      </span>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
