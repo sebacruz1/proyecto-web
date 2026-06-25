@@ -1,3 +1,5 @@
+# Proyecto universitario para el ramo de Ingeniería Web Y Movil
+
 # Santo Domingo Seguro
 
 Sistema web de reporte y gestión de incidentes municipales para la comuna de Santo Domingo. Permite a los ciudadanos reportar incidentes, a los patrulleros gestionar sus turnos y atender los casos asignados, y a los administradores supervisar y coordinar todo el sistema.
@@ -8,10 +10,6 @@ Sistema web de reporte y gestión de incidentes municipales para la comuna de Sa
 - Francisco Díaz
 - Kamila Leiva
 - Ignacio Matus de la Parra
-
-### Demo
-
-El proyecto está hosteado en AWS: http://54.233.44.158/
 
 ---
 
